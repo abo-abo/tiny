@@ -51,8 +51,12 @@
 ;; m25+x?A&c
 ;; m97,122stringx
 ;; m97,122stringxx
+;; m97,120stringxupcasex
+;; m97,120stringxupcasex)x
 ;; m10*2+3x
 ;; m\n;; 10expx
+;; m5\n;; 20expx&014.2f
+;; m, 7&0x&02x
 ;;
 ;; As you might have guessed, the syntax is as follows:
 ;; m[<range start:=0>][<separator:= >]<range end>[lisp expr][&][format expr]
@@ -72,7 +76,7 @@
 It's intended to poll all registered expander functions
 if they can expand the thing at point.
 First one to return a string succeeds.
-These functions are expcted to set `tiny-beg' and `tiny-end'
+These functions are expected to set `tiny-beg' and `tiny-end'
 to the bounds of the snippet that they matched.
 At the moment, only `tiny-mapconcat' is supported.
 `tiny-mapconcat2' should be added to expand rectangles."
@@ -93,7 +97,7 @@ At the moment, only `tiny-mapconcat' is supported.
   (global-set-key (kbd "C-;") 'tiny-expand))
 
 (defun tiny-replace-this-sexp ()
-  "Intellegintly replace current sexp."
+  "Intelligently replace current sexp."
   (interactive)
   (or
    (and (looking-back ")")
@@ -113,7 +117,7 @@ At the moment, only `tiny-mapconcat' is supported.
 (defun tiny-replace-sexp-desperately ()
   "Try to eval the current sexp.
 Replace it if there's no error.
-Go upwards until it's posible to eval.
+Go upwards until it's possible to eval.
 Skip lambdas."
   (interactive)
   (when (yas/snippets-at-point)
@@ -153,7 +157,7 @@ expression."
        n1
        n2
        s1))))
-
+
 (defun tiny-mapconcat-parse ()
   "Try to match a snippet of this form:
 m[START][SEPARATOR]END[EXPR][FORMAT]
@@ -162,7 +166,7 @@ m[START][SEPARATOR]END[EXPR][FORMAT]
 * SEPARATOR - string, default is " "
 * END - integer, required
 * EXPR - lisp expression.
-  Parens are optional if it's unabiguous, e.g.
+  Parens are optional if it's unambiguous, e.g.
   `(* 2 (+ x 3))' can be shortened to *2+x3,
   and `(exp x)' can be shortened to expx.
   A closing paren may be added to resolve ambiguity:
@@ -224,6 +228,7 @@ m[START][SEPARATOR]END[EXPR][FORMAT]
            t)
          (list n1 s1 n2 expr fmt))))
 
+;; TODO: check for arity: this doesn't work: exptxy
 (defun tiny-tokenize (str)
   (ignore-errors
     (let ((i 0)
