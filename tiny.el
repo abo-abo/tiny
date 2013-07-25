@@ -21,6 +21,12 @@
 
 ;;; Commentary:
 ;;
+;; Setup:
+;; In ~/.emacs:
+;;     (require 'tiny)
+;;     (tiny-setup-default)
+;;
+;; Usage:
 ;; This extension's main command is `tiny-expand'.
 ;; It's meant to generate quickly linear ranges, e.g. 5, 6, 7, 8.
 ;; Some elisp proficiency is an advantage, since you can transform
@@ -31,8 +37,9 @@
 ;; You can still do the full thing, but +x2 would save you some
 ;; key strokes.
 ;;
-;; Here are some examples. To try them out, first load this buffer,
-;; and then press C-; when at the end of the each expression below:
+;; You can test out the following snippets
+;; by positioning the point at the end of the expression
+;; and calling `tiny-expand' (default shortcut is C-;):
 ;;
 ;; m10
 ;; m5 10
