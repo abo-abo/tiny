@@ -42,8 +42,8 @@
 ;; m5 10*xx&0x&x
 ;; m25+x?a&c
 ;; m25+x?A&c
-;; m97,122:stringx
-;; m97,122:stringxx
+;; m97,122stringx
+;; m97,122stringxx
 ;; m10*2+3x
 ;; m\n;; 10expx
 ;;
