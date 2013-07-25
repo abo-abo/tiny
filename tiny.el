@@ -42,6 +42,9 @@
 ;; m5 10*xx&0x&x
 ;; m25+x?a&c
 ;; m25+x?A&c
+;; m97,122:stringx
+;; m97,122:stringxx
+;; m10*2+3x
 ;; m\n;; 10expx
 ;;
 ;; As you might have guessed, the syntax is as follows:
@@ -56,19 +59,34 @@
 
 (require 'cl)
 (require 'help-fns)
-(global-set-key (kbd "C-;") 'tiny-expand)
-(defvar tiny-beg)
-(defvar tiny-end)
 
-(defun tiny-expand (arg)
-  (interactive "P")
+(defun tiny-expand ()
+  "Expand current snippet.
+It's intended to poll all registered expander functions
+if they can expand the thing at point.
+First one to return a string succeeds.
+These functions are expcted to set `tiny-beg' and `tiny-end'
+to the bounds of the snippet that they matched.
+At the moment, only `tiny-mapconcat' is supported.
+`tiny-mapconcat2' should be added to expand rectangles."
+  (interactive)
   (let ((str (tiny-mapconcat)))
     (when str
       (delete-region tiny-beg tiny-end)
       (insert str)
       (tiny-replace-this-sexp))))
 
+(defvar tiny-beg nil
+  "Last matched snipped start position.")
+
+(defvar tiny-end nil
+  "Last matched snipped end position.")
+
+(defun tiny-setup-default ()
+  (global-set-key (kbd "C-;") 'tiny-expand))
+
 (defun tiny-replace-this-sexp ()
+  "Intellegintly replace current sexp."
   (interactive)
   (or
    (and (looking-back ")")
@@ -98,17 +116,20 @@ Skip lambdas."
     (error "can't go up this list"))
   (let ((sexp (preceding-sexp)))
     (cond
-     ((eq (car sexp) 'lambda)
-      (tiny-replace-sexp-desperately))
-     (t
-      (condition-case nil
-          (let ((value (eval sexp)))
-            (kill-sexp -1)
-            (insert (format "%s" value)))
-        (error (tiny-replace-sexp-desperately)))))))
+      ((eq (car sexp) 'lambda)
+       (tiny-replace-sexp-desperately))
+      (t
+       (condition-case nil
+           (let ((value (eval sexp)))
+             (kill-sexp -1)
+             (insert (format "%s" value)))
+         (error (tiny-replace-sexp-desperately)))))))
 
 (defun tiny-mapconcat ()
-  (destructuring-bind (n1 s1 n2 expr fmt) (tiny-mc-parse)
+  "Take the output of `tiny-mapconcat-parse' and replace
+the null values with defaults and return the formatted
+expression."
+  (destructuring-bind (n1 s1 n2 expr fmt) (tiny-mapconcat-parse)
     (when (zerop (length n1))
       (setq n1 "0"))
     (when (zerop (length s1))
@@ -118,46 +139,77 @@ Skip lambdas."
     (when (zerop (length fmt))
       (setq fmt "%s"))
     (unless (>= (read n1) (read n2))
-      (format "(mapconcat (lambda(x) (format \"%s\" %s)) (number-sequence %s %s) \"%s\")"
-              fmt
-              (tiny-tokenize expr)
-              n1
-              n2
-              s1))))
+      (format
+       "(mapconcat (lambda(x) (format \"%s\" %s)) (number-sequence %s %s) \"%s\")"
+       fmt
+       expr
+       n1
+       n2
+       s1))))
+
+(defun tiny-mapconcat-parse ()
+  "Try to match a snippet of this form:
+m[START][SEPARATOR]END[EXPR][FORMAT]
 
-(defun tiny-mc-parse ()
-  (interactive)
+* START - integer, default is 0
+* SEPARATOR - string, default is " "
+* END - integer, required
+* EXPR - lisp expression.
+  Parens are optional if it's unabiguous, e.g.
+  `(* 2 (+ x 3))' can be shortened to *2+x3,
+  and `(exp x)' can be shortened to expx.
+  A closing paren may be added to resolve ambiguity:
+  *2+x3"
   (let (n1 s1 n2 expr fmt str)
     (and (catch 'done
            (cond
-            ((looking-back "\\m\\(-?[0-9]+\\)\\([^\n]*?\\)")
-             (setq n1 (match-string-no-properties 1)
-                   str (match-string-no-properties 2)
-                   tiny-beg (match-beginning 0)
-                   tiny-end (match-end 0))
-             (when (zerop (length str))
-               (setq n2 n1
-                     n1 nil)
-               (throw 'done t)))
-            ((looking-back "\\m\\([^\n]*\\)")
-             (setq str (match-string-no-properties 1)
-                   tiny-beg (match-beginning 0)
-                   tiny-end (match-end 0))
-             (when (zerop (length str))
-               (throw 'done nil))))
-           (if (string-match "^\\([^\n&(]*?\\)\\(-?[0-9]+\\)" str)
+             ;; either start with a number
+             ((looking-back "\\m\\(-?[0-9]+\\)\\([^\n]*?\\)")
+              (setq n1 (match-string-no-properties 1)
+                    str (match-string-no-properties 2)
+                    tiny-beg (match-beginning 0)
+                    tiny-end (match-end 0))
+              (when (zerop (length str))
+                (setq n2 n1
+                      n1 nil)
+                (throw 'done t)))
+             ;; else capture the whole thing
+             ((looking-back "\\m\\([^\n]*\\)")
+              (setq str (match-string-no-properties 1)
+                    tiny-beg (match-beginning 0)
+                    tiny-end (match-end 0))
+              (when (zerop (length str))
+                (throw 'done nil))))
+           ;; at this point, `str' should be either [sep]<num>[expr][fmt]
+           ;; or [expr][fmt]
+           ;;
+           ;; First, try to match [expr][fmt]
+           (string-match "^\\(.*?\\)\\(&.*\\)?$" str)
+           (setq expr (match-string-no-properties 1 str))
+           (setq fmt  (match-string-no-properties 2 str))
+           ;; If it's a valid expression, we're done
+           (when (setq expr (tiny-tokenize expr))
+             (when fmt
+               (setq fmt (replace-regexp-in-string
+                          "&" "%" fmt)))
+             (setq n2 n1
+                   n1 nil)
+             (throw 'done t))
+           ;; at this point, `str' is [sep]<num>[expr][fmt]
+           (if (string-match "^\\([^\n0-9]*?\\)\\(-?[0-9]+\\)\\(.*\\)?$" str)
                (setq s1 (match-string-no-properties 1 str)
                      n2 (match-string-no-properties 2 str)
-                     str (substring str (match-end 0)))
+                     str (match-string-no-properties 3 str))
              ;; here there's only n2 that was matched as n1
              (setq n2 n1
                    n1 nil))
            ;; match expr_fmt
-           (if (string-match "^\\([^\n&]*?\\)\\(&[^\n]*\\)?$" str)
-               (progn
-                 (setq expr (match-string-no-properties 1 str))
-                 (setq fmt (match-string-no-properties 2 str)))
-             (error "couldn't match %s" str))
+           (when str
+             (if (string-match "^:?\\([^\n&]*?\\)\\(&[^\n]*\\)?$" str)
+                (progn
+                   (setq expr (tiny-tokenize (match-string-no-properties 1 str)))
+                   (setq fmt (match-string-no-properties 2 str)))
+               (error "couldn't match %s" str)))
            (when (> (length fmt) 0)
              (if (string-match "^&.*&.*$" fmt)
                  (setq fmt (replace-regexp-in-string "&" "%" (substring fmt 1)))
@@ -166,69 +218,71 @@ Skip lambdas."
          (list n1 s1 n2 expr fmt))))
 
 (defun tiny-tokenize (str)
-  (let ((i 0)
-        (j 1)
-        (len (length str))
-        sym
-        s
-        out
-        (n-paren 0)
-        (expect-fun t))
-    (while (< i len)
-      (setq s (substring str i j))
-      (when (cond
-             ((string= s "x")
-              (push s out)
-              (push " " out))
-             ((string= s "y")
-              (push s out)
-              (push " " out))
-             ((string= s " ")
-              t)
-             ((string= s "?")
-              (setq s (format "%s" (read (substring str i (incf j)))))
-              (push s out)
-              (push " " out))
-             ((string= s ")")
-              ;; expect a close paren only if it's necessary
-              (if (>= n-paren 2)
-                  (decf n-paren)
-                (error "unexpected \")\""))
-              (pop out)
-              (push ") " out))
-             ((string= s "(")
-              ;; open paren is used sometimes
-              ;; when there are numbers in the expression
-              (incf n-paren)
-              (push "(" out))
-             ((progn (setq sym (intern-soft s))
-                     (cond
-                      ;; general functionp
-                      ((not (eq t (help-function-arglist sym)))
-                       (setq expect-fun)
-                       (when (zerop n-paren)
-                         (push "(" out))
-                       (incf n-paren))
-                      ((and sym (boundp sym) (not expect-fun))
-                       t)))
-              (push s out)
-              (push " " out))
-             ((numberp (read s))
-              (let* ((num (string-to-number (substring str i)))
-                     (num-s (format "%s" num)))
-                (push num-s out)
-                (push " " out)
-                (setq j (+ i (length num-s)))))
-             (t
-              (incf j)
-              nil))
-        (setq i j)
-        (setq j (1+ i))))
-    ;; last space
-    (pop out)
-    (concat
-     (apply #'concat (nreverse out))
-     (make-string n-paren ?\)))))
+  (ignore-errors
+    (let ((i 0)
+          (j 1)
+          (len (length str))
+          sym
+          s
+          out
+          (n-paren 0)
+          (expect-fun t))
+      (while (< i len)
+        (setq s (substring str i j))
+        (when (cond
+                ((string= s "x")
+                 (push s out)
+                 (push " " out))
+                ((string= s "y")
+                 (push s out)
+                 (push " " out))
+                ((string= s " ")
+                 (error "unexpected \" \""))
+                ((string= s "?")
+                 (setq s (format "%s" (read (substring str i (incf j)))))
+                 (push s out)
+                 (push " " out))
+                ((string= s ")")
+                 ;; expect a close paren only if it's necessary
+                 (if (>= n-paren 2)
+                     (decf n-paren)
+                   (error "unexpected \")\""))
+                 (pop out)
+                 (push ") " out))
+                ((string= s "(")
+                 ;; open paren is used sometimes
+                 ;; when there are numbers in the expression
+                 (incf n-paren)
+                 (push "(" out))
+                ((progn (setq sym (intern-soft s))
+                        (cond
+                          ;; general functionp
+                          ((not (eq t (help-function-arglist sym)))
+                           (setq expect-fun)
+                           ;; (when (zerop n-paren)
+                           ;;   (push "(" out))
+                           (push "(" out)
+                           (incf n-paren))
+                          ((and sym (boundp sym) (not expect-fun))
+                           t)))
+                 (push s out)
+                 (push " " out))
+                ((numberp (read s))
+                 (let* ((num (string-to-number (substring str i)))
+                        (num-s (format "%s" num)))
+                   (push num-s out)
+                   (push " " out)
+                   (setq j (+ i (length num-s)))))
+                (t
+                 (incf j)
+                 nil))
+          (setq i j)
+          (setq j (1+ i))))
+      ;; last space
+      (pop out)
+      (concat
+       (apply #'concat (nreverse out))
+       (make-string n-paren ?\))))))
 
 (provide 'tiny)
 ;;; tiny.el ends here
