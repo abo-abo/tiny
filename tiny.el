@@ -57,6 +57,7 @@
 ;; m\n;; 10expx
 ;; m5\n;; 20expx&014.2f
 ;; m, 7&0x&02x
+;; m1\n14&*** TODO http://emacsrocks.com/e&02d.html
 ;;
 ;; As you might have guessed, the syntax is as follows:
 ;; m[<range start:=0>][<separator:= >]<range end>[lisp expr][&][format expr]
