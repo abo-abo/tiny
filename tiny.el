@@ -58,6 +58,7 @@
 ;; m5\n;; 20expx&014.2f
 ;; m, 7&0x&02x
 ;; m1\n14&*** TODO http://emacsrocks.com/e&02d.html
+;; m1\n10&convert img&s.jpg -monochrome -resize 50% -rotate 180 img&s_mono.pdf
 ;;
 ;; As you might have guessed, the syntax is as follows:
 ;; m[<range start:=0>][<separator:= >]<range end>[lisp expr][&][format expr]
@@ -141,7 +142,7 @@ Skip lambdas."
   "Take the output of `tiny-mapconcat-parse' and replace
 the null values with defaults and return the formatted
 expression."
-  (destructuring-bind (n1 s1 n2 expr fmt) (tiny-mapconcat-parse)
+  (destructuring-bind (n1 s1 n2 expr fmt n-uses) (tiny-mapconcat-parse)
     (when (zerop (length n1))
       (setq n1 "0"))
     (when (zerop (length s1))
@@ -152,9 +153,14 @@ expression."
       (setq fmt "%s"))
     (unless (>= (read n1) (read n2))
       (format
-       "(mapconcat (lambda(x) (format \"%s\" %s)) (number-sequence %s %s) \"%s\")"
-       fmt
+       (concat
+        "(mapconcat (lambda(x) (setq x %s)(format \"%s\" "
+        (if n-uses
+            (apply #'concat (make-list n-uses "x "))
+          "x")
+        ")) (number-sequence %s %s) \"%s\")")
        expr
+       fmt
        n1
        n2
        s1))))
@@ -172,7 +178,7 @@ m[START][SEPARATOR]END[EXPR][FORMAT]
   and `(exp x)' can be shortened to expx.
   A closing paren may be added to resolve ambiguity:
   *2+x3"
-  (let (n1 s1 n2 expr fmt str)
+  (let (n1 s1 n2 expr fmt str n-uses)
     (and (catch 'done
            (cond
              ;; either start with a number
@@ -202,8 +208,12 @@ m[START][SEPARATOR]END[EXPR][FORMAT]
            ;; If it's a valid expression, we're done
            (when (setq expr (tiny-tokenize expr))
              (when fmt
-               (setq fmt (replace-regexp-in-string
-                          "&" "%" fmt)))
+               (setq n-uses (cl-count ?& fmt))
+               (setq fmt
+                     (replace-regexp-in-string
+                      "&" "%"
+                      (replace-regexp-in-string
+                       "%" "%%" fmt))))
              (setq n2 n1
                    n1 nil)
              (throw 'done t))
@@ -224,10 +234,13 @@ m[START][SEPARATOR]END[EXPR][FORMAT]
                (error "couldn't match %s" str)))
            (when (> (length fmt) 0)
              (if (string-match "^&.*&.*$" fmt)
-                 (setq fmt (replace-regexp-in-string "&" "%" (substring fmt 1)))
+                 (progn
+                   (setq fmt (replace-regexp-in-string "%" "%%" (substring fmt 1)))
+                   (setq n-uses (cl-count ?& fmt))
+                   (setq fmt (replace-regexp-in-string "&" "%" fmt)))
                (aset fmt 0 ?%)))
            t)
-         (list n1 s1 n2 expr fmt))))
+         (list n1 s1 n2 expr fmt n-uses))))
 
 ;; TODO: check for arity: this doesn't work: exptxy
 (defun tiny-tokenize (str)
