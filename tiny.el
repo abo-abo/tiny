@@ -59,6 +59,9 @@
 ;; m, 7&0x&02x
 ;; m1\n14&*** TODO http://emacsrocks.com/e&02d.html
 ;; m1\n10&convert img&s.jpg -monochrome -resize 50% -rotate 180 img&s_mono.pdf
+;; (setq foo-list '(m1 11+x96&?&c))
+;; m1\n10listx+x96&convert img&s.jpg -monochrome -resize 50% -rotate 180 img&c_mono.pdf
+;; m1\n10listxnthxfoo-list&convert img&s.jpg -monochrome -resize 50% -rotate 180 img&c_mono.pdf
 ;;
 ;; As you might have guessed, the syntax is as follows:
 ;; m[<range start:=0>][<separator:= >]<range end>[lisp expr][&][format expr]
@@ -151,19 +154,27 @@ expression."
       (setq expr "x"))
     (when (zerop (length fmt))
       (setq fmt "%s"))
+    ;;
+    (let* ((lexpr (read expr))
+           (format-expressions (if (eq (car lexpr) 'list)
+                                   (mapconcat #'identity
+                                              (loop for i from 0 to (1- (length lexpr))
+                                                 collecting (format "(nth %d x)" i))
+                                              " ")
+                                 (if n-uses
+                                     (apply #'concat (make-list n-uses "x "))
+                                   "x"))))
     (unless (>= (read n1) (read n2))
       (format
        (concat
         "(mapconcat (lambda(x) (setq x %s)(format \"%s\" "
-        (if n-uses
-            (apply #'concat (make-list n-uses "x "))
-          "x")
+        format-expressions
         ")) (number-sequence %s %s) \"%s\")")
        expr
        fmt
        n1
        n2
-       s1))))
+       s1)))))
 
 (defun tiny-mapconcat-parse ()
   "Try to match a snippet of this form:
