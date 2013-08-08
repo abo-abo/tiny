@@ -156,7 +156,7 @@ expression."
       (setq fmt "%s"))
     ;;
     (let* ((lexpr (read expr))
-           (format-expressions (if (eq (car lexpr) 'list)
+           (format-expressions (if (and (listp lexpr) (eq (car lexpr) 'list))
                                    (mapconcat #'identity
                                               (loop for i from 0 to (1- (length lexpr))
                                                  collecting (format "(nth %d x)" i))
