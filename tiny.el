@@ -28,7 +28,7 @@
 ;;
 ;; Usage:
 ;; This extension's main command is `tiny-expand'.
-;; It's meant to generate quickly linear ranges, e.g. 5, 6, 7, 8.
+;; It's meant to quickly generate linear ranges, e.g. 5, 6, 7, 8.
 ;; Some elisp proficiency is an advantage, since you can transform
 ;; your numeric range with an elisp expression.
 ;;
@@ -72,9 +72,24 @@
 ;; & means that elisp expr has ended and format expr has begun.
 ;; It can be used as part of the format expr if there's only one.
 ;; The keys are the same as for format: I just translate & to %.
+;;
+;; Note that multiple & can be used in the format expression.
+;; In that case:
+;; * if the lisp expresion returns a list, the members of this list
+;;   are used in the appropriate place.
+;; * otherwise, it's just the result of the expression repeated as
+;;   many times as necessary.
 
-(require 'cl)
+(eval-when-compile
+  (require 'cl))
+(require 'cl-lib)
 (require 'help-fns)
+
+(defvar tiny-beg nil
+  "Last matched snipped start position.")
+
+(defvar tiny-end nil
+  "Last matched snipped end position.")
 
 (defun tiny-expand ()
   "Expand current snippet.
@@ -91,12 +106,6 @@ At the moment, only `tiny-mapconcat' is supported.
       (delete-region tiny-beg tiny-end)
       (insert str)
       (tiny-replace-this-sexp))))
-
-(defvar tiny-beg nil
-  "Last matched snipped start position.")
-
-(defvar tiny-end nil
-  "Last matched snipped end position.")
 
 (defun tiny-setup-default ()
   (global-set-key (kbd "C-;") 'tiny-expand))
@@ -125,10 +134,8 @@ Replace it if there's no error.
 Go upwards until it's possible to eval.
 Skip lambdas."
   (interactive)
-  (when (yas/snippets-at-point)
-    (yas/exit-all-snippets))
   (condition-case nil
-      (up-list*)
+      (tiny-up-list)
     (error "can't go up this list"))
   (let ((sexp (preceding-sexp)))
     (cond
@@ -140,6 +147,17 @@ Skip lambdas."
              (kill-sexp -1)
              (insert (format "%s" value)))
          (error (tiny-replace-sexp-desperately)))))))
+
+(defun tiny-beginning-of-string ()
+  (interactive)
+  (let ((p (nth 8 (syntax-ppss))))
+    (when (eq (char-after p) ?\")
+      (goto-char p))))
+
+(defun tiny-up-list ()
+  (interactive)
+  (tiny-beginning-of-string)
+  (up-list))
 
 (defun tiny-mapconcat ()
   "Take the output of `tiny-mapconcat-parse' and replace
