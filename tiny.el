@@ -58,10 +58,11 @@
 ;; m5\n;; 20expx&014.2f
 ;; m, 7&0x&02x
 ;; m1\n14&*** TODO http://emacsrocks.com/e&02d.html
-;; m1\n10&convert img&s.jpg -monochrome -resize 50% -rotate 180 img&s_mono.pdf
+;; m1\n10&&convert img&s.jpg -monochrome -resize 50% -rotate 180 img&s_mono.pdf
 ;; (setq foo-list '(m1 11+x96&?&c))
-;; m1\n10listx+x96&convert img&s.jpg -monochrome -resize 50% -rotate 180 img&c_mono.pdf
-;; m1\n10listxnthxfoo-list&convert img&s.jpg -monochrome -resize 50% -rotate 180 img&c_mono.pdf
+;; m1\n10listx+x96&&convert img&s.jpg -monochrome -resize 50% -rotate 180 img&c_mono.pdf
+;; m1\n10listxnthxfoo-list&&convert img&s.jpg -monochrome -resize 50% -rotate 180 img&c_mono.pdf
+;; m\n;; 16list*xxx)*xx&s:&s:&s
 ;;
 ;; As you might have guessed, the syntax is as follows:
 ;; m[<range start:=0>][<separator:= >]<range end>[lisp expr][&][format expr]
@@ -93,7 +94,7 @@
 
 (defun tiny-expand ()
   "Expand current snippet.
-It's intended to poll all registered expander functions
+It polls the expander functions one by one
 if they can expand the thing at point.
 First one to return a string succeeds.
 These functions are expected to set `tiny-beg' and `tiny-end'
@@ -139,6 +140,7 @@ Skip lambdas."
     (error "can't go up this list"))
   (let ((sexp (preceding-sexp)))
     (cond
+      ;; since lambda evaluates to inself, skip it
       ((eq (car sexp) 'lambda)
        (tiny-replace-sexp-desperately))
       (t
@@ -149,6 +151,7 @@ Skip lambdas."
          (error (tiny-replace-sexp-desperately)))))))
 
 (defun tiny-beginning-of-string ()
+  "If inside string, move point to its beginning"
   (interactive)
   (let ((p (nth 8 (syntax-ppss))))
     (when (eq (char-after p) ?\")
@@ -163,36 +166,38 @@ Skip lambdas."
   "Take the output of `tiny-mapconcat-parse' and replace
 the null values with defaults and return the formatted
 expression."
-  (destructuring-bind (n1 s1 n2 expr fmt n-uses) (tiny-mapconcat-parse)
-    (when (zerop (length n1))
-      (setq n1 "0"))
-    (when (zerop (length s1))
-      (setq s1 " "))
-    (when (zerop (length expr))
-      (setq expr "x"))
-    (when (zerop (length fmt))
-      (setq fmt "%s"))
-    ;;
-    (let* ((lexpr (read expr))
-           (format-expressions (if (and (listp lexpr) (eq (car lexpr) 'list))
-                                   (mapconcat #'identity
-                                              (loop for i from 0 to (1- (length lexpr))
-                                                 collecting (format "(nth %d x)" i))
-                                              " ")
-                                 (if n-uses
-                                     (apply #'concat (make-list n-uses "x "))
-                                   "x"))))
-    (unless (>= (read n1) (read n2))
-      (format
-       (concat
-        "(mapconcat (lambda(x) (setq x %s)(format \"%s\" "
-        format-expressions
-        ")) (number-sequence %s %s) \"%s\")")
-       expr
-       fmt
-       n1
-       n2
-       s1)))))
+  (let* ((parsed (tiny-mapconcat-parse))
+         (n1     (or (nth 0 parsed) "0"))
+         (s1     (or (nth 1 parsed) " "))
+         (n2     (nth 2 parsed))
+         (expr   (or (nth 3 parsed) "x"))
+         (fmt    (or (nth 4 parsed) "%s"))
+         (n-uses (or (nth 5 parsed) 1))
+         (lexpr (read expr))
+         (n-items (if (and (listp lexpr) (eq (car lexpr) 'list))
+                      (1- (length lexpr))
+                    0))
+         (format-expression
+          (concat "(mapconcat (lambda(x) (let (("
+                  (if (zerop n-items) "y" "lst") " %s)) (format \"%s\" "
+                  (mapconcat #'identity
+                             (loop for i from 0 to (1- n-items)
+                                collecting (format "(nth %d lst)" i))
+                             " ")
+                  (if (or (equal expr "x") (> n-items 0)) "x " "y ")
+                  (mapconcat #'identity
+                             (loop for i from (1+ n-items) to (1- n-uses)
+                                collecting "x")
+                             " ")
+                  ")))(number-sequence %s %s) \"%s\")")))
+      (unless (>= (read n1) (read n2))
+        (format
+         format-expression
+         expr
+         fmt
+         n1
+         n2
+         s1))))
 
 (defun tiny-mapconcat-parse ()
   "Try to match a snippet of this form:
@@ -208,68 +213,70 @@ m[START][SEPARATOR]END[EXPR][FORMAT]
   A closing paren may be added to resolve ambiguity:
   *2+x3"
   (let (n1 s1 n2 expr fmt str n-uses)
-    (and (catch 'done
-           (cond
-             ;; either start with a number
-             ((looking-back "\\m\\(-?[0-9]+\\)\\([^\n]*?\\)")
-              (setq n1 (match-string-no-properties 1)
-                    str (match-string-no-properties 2)
-                    tiny-beg (match-beginning 0)
-                    tiny-end (match-end 0))
-              (when (zerop (length str))
-                (setq n2 n1
-                      n1 nil)
-                (throw 'done t)))
-             ;; else capture the whole thing
-             ((looking-back "\\m\\([^\n]*\\)")
-              (setq str (match-string-no-properties 1)
-                    tiny-beg (match-beginning 0)
-                    tiny-end (match-end 0))
-              (when (zerop (length str))
-                (throw 'done nil))))
-           ;; at this point, `str' should be either [sep]<num>[expr][fmt]
-           ;; or [expr][fmt]
-           ;;
-           ;; First, try to match [expr][fmt]
-           (string-match "^\\(.*?\\)\\(&.*\\)?$" str)
-           (setq expr (match-string-no-properties 1 str))
-           (setq fmt  (match-string-no-properties 2 str))
-           ;; If it's a valid expression, we're done
-           (when (setq expr (tiny-tokenize expr))
-             (when fmt
-               (setq n-uses (cl-count ?& fmt))
-               (setq fmt
-                     (replace-regexp-in-string
-                      "&" "%"
-                      (replace-regexp-in-string
-                       "%" "%%" fmt))))
-             (setq n2 n1
-                   n1 nil)
-             (throw 'done t))
-           ;; at this point, `str' is [sep]<num>[expr][fmt]
-           (if (string-match "^\\([^\n0-9]*?\\)\\(-?[0-9]+\\)\\(.*\\)?$" str)
-               (setq s1 (match-string-no-properties 1 str)
-                     n2 (match-string-no-properties 2 str)
-                     str (match-string-no-properties 3 str))
-             ;; here there's only n2 that was matched as n1
-             (setq n2 n1
-                   n1 nil))
-           ;; match expr_fmt
-           (when str
-             (if (string-match "^:?\\([^\n&]*?\\)\\(&[^\n]*\\)?$" str)
-                (progn
-                   (setq expr (tiny-tokenize (match-string-no-properties 1 str)))
-                   (setq fmt (match-string-no-properties 2 str)))
-               (error "couldn't match %s" str)))
-           (when (> (length fmt) 0)
-             (if (string-match "^&.*&.*$" fmt)
-                 (progn
-                   (setq fmt (replace-regexp-in-string "%" "%%" (substring fmt 1)))
-                   (setq n-uses (cl-count ?& fmt))
-                   (setq fmt (replace-regexp-in-string "&" "%" fmt)))
-               (aset fmt 0 ?%)))
-           t)
-         (list n1 s1 n2 expr fmt n-uses))))
+    (when (catch 'done
+            (cond
+              ;; either start with a number
+              ((looking-back "\\bm\\(-?[0-9]+\\)\\([^\n]*?\\)")
+               (setq n1 (match-string-no-properties 1)
+                     str (match-string-no-properties 2)
+                     tiny-beg (match-beginning 0)
+                     tiny-end (match-end 0))
+               (when (zerop (length str))
+                 (setq n2 n1
+                       n1 nil)
+                 (throw 'done t)))
+              ;; else capture the whole thing
+              ((looking-back "\\bm\\([^\n]*\\)")
+               (setq str (match-string-no-properties 1)
+                     tiny-beg (match-beginning 0)
+                     tiny-end (match-end 0))
+               (when (zerop (length str))
+                 (throw 'done nil))))
+            ;; at this point, `str' should be either [sep]<num>[expr][fmt]
+            ;; or [expr][fmt]
+            ;;
+            ;; First, try to match [expr][fmt]
+            (string-match "^\\(.*?\\)\\(&.*\\)?$" str)
+            (setq expr (match-string-no-properties 1 str))
+            (setq fmt  (match-string-no-properties 2 str))
+            ;; If it's a valid expression, we're done
+            (when (setq expr (tiny-tokenize expr))
+              (setq n2 n1
+                    n1 nil)
+              (throw 'done t))
+            ;; at this point, `str' is [sep]<num>[expr][fmt]
+            (if (string-match "^\\([^\n0-9]*?\\)\\(-?[0-9]+\\)\\(.*\\)?$" str)
+                (setq s1 (match-string-no-properties 1 str)
+                      n2 (match-string-no-properties 2 str)
+                      str (match-string-no-properties 3 str))
+              ;; here there's only n2 that was matched as n1
+              (setq n2 n1
+                    n1 nil))
+            ;; match expr_fmt
+            (unless (zerop (length str))
+              (if (string-match "^:?\\([^\n&]*?\\)\\(&[^\n]*\\)?$" str)
+                  (progn
+                    (setq expr (tiny-tokenize (match-string-no-properties 1 str)))
+                    (setq fmt (match-string-no-properties 2 str)))
+                (error "couldn't match %s" str)))
+            t)
+      (when fmt
+        ;; & at the beginning is either a part of format expression
+        ;; or just a separator
+        (when (string-match "^&&" fmt)
+          (setq fmt (substring fmt 2)))
+        (when (eq (aref fmt 0) ?&)
+          (unless (string-match "^&[+-# 0]*[0-9]*.?[0-9]*\\(?:s\\|d\\|o\\|x\\|X\\|e\\|f\\|g\\|c\\|S\\)" fmt)
+            (setq fmt (substring fmt 1))))
+        (setq n-uses (cl-count ?& fmt))
+        (setq fmt
+              (replace-regexp-in-string
+               "&" "%"
+               (replace-regexp-in-string
+                "%" "%%" fmt))))
+      (list n1 s1 n2
+            (unless (equal expr "") expr)
+            fmt n-uses))))
 
 ;; TODO: check for arity: this doesn't work: exptxy
 (defun tiny-tokenize (str)
