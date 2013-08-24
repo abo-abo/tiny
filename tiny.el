@@ -306,10 +306,11 @@ m[START][SEPARATOR]END[EXPR][FORMAT]
                  (push " " out))
                 ((string= s ")")
                  ;; expect a close paren only if it's necessary
-                 (if (>= n-paren 2)
+                 (if (>= n-paren 0)
                      (decf n-paren)
                    (error "unexpected \")\""))
-                 (pop out)
+                 (when (string= (car out) " ")
+                   (pop out))
                  (push ") " out))
                 ((string= s "(")
                  ;; open paren is used sometimes
@@ -341,7 +342,8 @@ m[START][SEPARATOR]END[EXPR][FORMAT]
           (setq i j)
           (setq j (1+ i))))
       ;; last space
-      (pop out)
+      (when (string= (car out) " ")
+        (pop out))
       (concat
        (apply #'concat (nreverse out))
        (make-string n-paren ?\))))))
