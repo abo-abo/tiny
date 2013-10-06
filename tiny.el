@@ -304,77 +304,79 @@ Return nil if nothing was matched, otherwise
 
 ;; TODO: check for arity: this doesn't work: exptxy
 (defun tiny-tokenize (str)
-  (ignore-errors
-    (let ((i 0)
-          (j 1)
-          (len (length str))
-          sym
-          s
-          out
-          (n-paren 0)
-          (expect-fun t))
-      (while (< i len)
-        (setq s (substring str i j))
-        (when (cond
-                ((string= s "x")
-                 (push s out)
-                 (push " " out))
-                ((string= s "y")
-                 (push s out)
-                 (push " " out))
-                ((string= s " ")
-                 (error "unexpected \" \""))
-                ((string= s "?")
-                 (setq s (format "%s" (read (substring str i (incf j)))))
-                 (push s out)
-                 (push " " out))
-                ((string= s ")")
-                 ;; expect a close paren only if it's necessary
-                 (if (>= n-paren 0)
-                     (decf n-paren)
-                   (error "unexpected \")\""))
-                 (when (string= (car out) " ")
-                   (pop out))
-                 (push ") " out))
-                ((string= s "(")
-                 ;; open paren is used sometimes
-                 ;; when there are numbers in the expression
-                 (incf n-paren)
-                 (push "(" out))
-                ((progn (setq sym (intern-soft s))
-                        (cond
-                          ;; general functionp
-                          ((not (eq t (help-function-arglist sym)))
-                           (setq expect-fun)
-                           ;; (when (zerop n-paren)
-                           ;;   (push "(" out))
-                           (push "(" out)
-                           (incf n-paren))
-                          ((and sym (boundp sym) (not expect-fun))
-                           t)))
-                 (push s out)
-                 (push " " out))
-                ((numberp (read s))
-                 (let* ((num (string-to-number (substring str i)))
-                        (num-s (format "%s" num)))
-                   (push num-s out)
-                   (push " " out)
-                   (setq j (+ i (length num-s)))))
-                (t
-                 (incf j)
-                 nil))
-          (setq i j)
-          (setq j (1+ i))))
-      ;; last space
-      (when (string= (car out) " ")
-        (pop out))
-      (concat
-       (apply #'concat (nreverse out))
-       (make-string n-paren ?\))))))
+  (unless (equal str "")
+    (ignore-errors
+      (let ((i 0)
+            (j 1)
+            (len (length str))
+            sym
+            s
+            out
+            (n-paren 0)
+            (expect-fun t))
+        (while (< i len)
+          (setq s (substring str i j))
+          (when (cond
+                  ((string= s "x")
+                   (push s out)
+                   (push " " out))
+                  ((string= s "y")
+                   (push s out)
+                   (push " " out))
+                  ((string= s " ")
+                   (error "unexpected \" \""))
+                  ((string= s "?")
+                   (setq s (format "%s" (read (substring str i (incf j)))))
+                   (push s out)
+                   (push " " out))
+                  ((string= s ")")
+                   ;; expect a close paren only if it's necessary
+                   (if (>= n-paren 0)
+                       (decf n-paren)
+                     (error "unexpected \")\""))
+                   (when (string= (car out) " ")
+                     (pop out))
+                   (push ") " out))
+                  ((string= s "(")
+                   ;; open paren is used sometimes
+                   ;; when there are numbers in the expression
+                   (incf n-paren)
+                   (push "(" out))
+                  ((progn (setq sym (intern-soft s))
+                          (cond
+                            ;; general functionp
+                            ((not (eq t (help-function-arglist sym)))
+                             (setq expect-fun)
+                             ;; (when (zerop n-paren)
+                             ;;   (push "(" out))
+                             (push "(" out)
+                             (incf n-paren))
+                            ((and sym (boundp sym) (not expect-fun))
+                             t)))
+                   (push s out)
+                   (push " " out))
+                  ((numberp (read s))
+                   (let* ((num (string-to-number (substring str i)))
+                          (num-s (format "%s" num)))
+                     (push num-s out)
+                     (push " " out)
+                     (setq j (+ i (length num-s)))))
+                  (t
+                   (incf j)
+                   nil))
+            (setq i j)
+            (setq j (1+ i))))
+        ;; last space
+        (when (string= (car out) " ")
+          (pop out))
+        (concat
+         (apply #'concat (nreverse out))
+         (make-string n-paren ?\)))))))
 
 (defun tiny-mapconcat-parse-test ()
   (let* ((tests
           '(("m10" (nil nil "10" nil nil))
+            ("m5%x" (nil nil "5" nil "%x"))
             ("m5 10" ("5" " " "10" nil nil))
             ("m5,10" ("5" "," "10" nil nil))
             ("m5 10*xx" ("5" " " "10" "(* x x)" nil))
