@@ -1,4 +1,4 @@
-# Main idea:
+### Main idea:
 
 This is an alternative to inserting numeric ranges with macros (i.e. `F3 F3`).
 The advantages are:
@@ -31,7 +31,7 @@ The advantages are:
     6. `m97,102stringxupcasex` -> `aA,bB,cC,dD,eE,fF`
     7. `m,3|%(+ x x) and %(* x x) and %s` -> `0 and 0 and 0,2 and 1 and 1,4 and 4 and 2,6 and 9 and 3,8 and 16 and 4,10 and 25 and 5`
 
-# Use in conjunction with `org-mode`:
+### Use in conjunction with `org-mode`:
 
     m1\n14|*** TODO http://emacsrocks.com/e%02d.html
 
@@ -73,7 +73,7 @@ You can even schedule and deadline:
     **** TODO Learning from Data Week 10 
     SCHEDULED: <2013-12-02 Mon> DEADLINE: <2013-12-09 Mon>
 
-# Setup
+### Setup
 In `~/.emacs`:
 
     (require 'tiny)
