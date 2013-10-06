@@ -46,17 +46,18 @@
 ;; m5,10
 ;; m5 10*xx
 ;; m5 10*xx&x
-;; m5 10*xx&0x&x
+;; m5 10*xx&&0x&x
 ;; m25+x?a&c
 ;; m25+x?A&c
 ;; m97,122stringx
 ;; m97,122stringxx
 ;; m97,120stringxupcasex
 ;; m97,120stringxupcasex)x
+;; m\n;; 10 &%(+ x x) and %(* x x) and &s
 ;; m10*2+3x
 ;; m\n;; 10expx
 ;; m5\n;; 20expx&014.2f
-;; m, 7&0x&02x
+;; m, 7&&0x&02x
 ;; m1\n14&*** TODO http://emacsrocks.com/e&02d.html
 ;; m1\n10&&convert img&s.jpg -monochrome -resize 50% -rotate 180 img&s_mono.pdf
 ;; (setq foo-list '(m1 11+x96&?&c))
@@ -171,7 +172,7 @@ expression."
          (s1     (or (nth 1 parsed) " "))
          (n2     (nth 2 parsed))
          (expr   (or (nth 3 parsed) "x"))
-         (fmt    (or (nth 4 parsed) "%s"))
+         (fmt    (tiny-extract-sexps (or (nth 4 parsed) "%s")))
          (n-uses (or (nth 5 parsed) 1))
          (lexpr (read expr))
          (n-items (if (and (listp lexpr) (eq (car lexpr) 'list))
@@ -184,6 +185,7 @@ expression."
                              (loop for i from 0 to (1- n-items)
                                 collecting (format "(nth %d lst)" i))
                              " ")
+                  (mapconcat #'identity (cdr fmt) " ")
                   (if (or (equal expr "x") (> n-items 0)) "x " "y ")
                   (mapconcat #'identity
                              (loop for i from (1+ n-items) to (1- n-uses)
@@ -194,10 +196,25 @@ expression."
         (format
          format-expression
          expr
-         fmt
+         (car fmt)
          n1
          n2
          s1))))
+
+(defun tiny-extract-sexps (str)
+  "Replace all %(...) forms in STR with %s.
+Return (STR forms)."
+  (let (forms beg)
+    (condition-case nil
+        (while (setq beg (string-match "%(" str))
+          (incf beg)
+          (destructuring-bind (sexp . end) (read-from-string str beg)
+            (push (substring str beg end) forms)
+            (setq str (concat (substring str 0 (1- beg))
+                              "s"
+                              (substring str end)))))
+      (error (message "Malformed sexp: %s" (substring str beg))))
+    (cons str (nreverse forms))))
 
 (defun tiny-mapconcat-parse ()
   "Try to match a snippet of this form:
