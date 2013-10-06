@@ -49,7 +49,7 @@
 ;; m5 10*xx|0x%x
 ;; m25+x?a%c
 ;; m25+x?A%c
-;; m97,122stringx
+;; m97,122(string x)
 ;; m97,122stringxx
 ;; m97,120stringxupcasex
 ;; m97,120stringxupcasex)x
@@ -67,16 +67,17 @@
 ;; m\n8|**** TODO Learning from Data Week %(+ x 2) \nSCHEDULED: <%(t-date "Oct 7" (* x 7))> DEADLINE: <%(t-date "Oct 14" (* x 7))>
 ;;
 ;; As you might have guessed, the syntax is as follows:
-;; m[<range start:=0>][<separator:= >]<range end>[lisp expr][&][format expr]
+;; m[<range start:=0>][<separator:= >]<range end>[lisp expr]|[format expr]
 ;;
 ;; x is the default var in the elisp expression. It will take one by one
 ;; the value of all numbers in the range.
 ;;
-;; & means that elisp expr has ended and format expr has begun.
-;; It can be used as part of the format expr if there's only one.
-;; The keys are the same as for format: I just translate & to %.
+;; | means that elisp expr has ended and format expr has begun.
+;; It can be omitted if the format expr starts with %.
+;; The keys are the same as for format.
+;; In addition %(sexp) forms are allowed. The sexp can depend on x.
 ;;
-;; Note that multiple & can be used in the format expression.
+;; Note that multiple % can be used in the format expression.
 ;; In that case:
 ;; * if the lisp expression returns a list, the members of this list
 ;;   are used in the appropriate place.
@@ -85,7 +86,6 @@
 
 (eval-when-compile
   (require 'cl))
-(require 'cl-lib)
 (require 'help-fns)
 
 (defvar tiny-beg nil
