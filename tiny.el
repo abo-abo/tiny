@@ -78,7 +78,7 @@
 ;;
 ;; Note that multiple & can be used in the format expression.
 ;; In that case:
-;; * if the lisp expresion returns a list, the members of this list
+;; * if the lisp expression returns a list, the members of this list
 ;;   are used in the appropriate place.
 ;; * otherwise, it's just the result of the expression repeated as
 ;;   many times as necessary.
@@ -89,10 +89,10 @@
 (require 'help-fns)
 
 (defvar tiny-beg nil
-  "Last matched snipped start position.")
+  "Last matched snippet start position.")
 
 (defvar tiny-end nil
-  "Last matched snipped end position.")
+  "Last matched snippet end position.")
 
 (defun tiny-expand ()
   "Expand current snippet.
@@ -142,7 +142,7 @@ Skip lambdas."
     (error "can't go up this list"))
   (let ((sexp (preceding-sexp)))
     (cond
-      ;; since lambda evaluates to inself, skip it
+      ;; since lambda evaluates to itself, skip it
       ((eq (car sexp) 'lambda)
        (tiny-replace-sexp-desperately))
       (t
@@ -202,7 +202,7 @@ expression."
          s1))))
 
 (defun tiny-extract-sexps (str)
-  "Retruns (STR & FORMS), where each element of FORMS
+  "Returns (STR & FORMS), where each element of FORMS
 corresponds to a `format'-style % form in STR.
 
   * %% forms are skipped
