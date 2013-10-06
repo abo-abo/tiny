@@ -11,16 +11,16 @@ The advantages are:
    and transform it with `format`-style expressions
    e.g. `m6\n15%s=0%o=0x%x` will expand to
 
-    6=06=0x6
-    7=07=0x7
-    8=010=0x8
-    9=011=0x9
-    10=012=0xa
-    11=013=0xb
-    12=014=0xc
-    13=015=0xd
-    14=016=0xe
-    15=017=0xf
+        6=06=0x6
+        7=07=0x7
+        8=010=0x8
+        9=011=0x9
+        10=012=0xa
+        11=013=0xb
+        12=014=0xc
+        13=015=0xd
+        14=016=0xe
+        15=017=0xf
 4. Last but not least, the ability to transform the number with lisp expressions.
    For instance:
     1. `m5 10*xx` -> `25 36 49 64 81 100`
@@ -72,3 +72,9 @@ You can even schedule and deadline:
     SCHEDULED: <2013-11-25 Mon> DEADLINE: <2013-12-02 Mon>
     **** TODO Learning from Data Week 10 
     SCHEDULED: <2013-12-02 Mon> DEADLINE: <2013-12-09 Mon>
+
+# Setup
+In `~/.emacs`:
+
+    (require 'tiny)
+    (tiny-setup-default)
