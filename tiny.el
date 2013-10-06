@@ -45,25 +45,26 @@
 ;; m5 10
 ;; m5,10
 ;; m5 10*xx
-;; m5 10*xx&x
-;; m5 10*xx&&0x&x
-;; m25+x?a&c
-;; m25+x?A&c
+;; m5 10*xx%x
+;; m5 10*xx|0x%x
+;; m25+x?a%c
+;; m25+x?A%c
 ;; m97,122stringx
 ;; m97,122stringxx
 ;; m97,120stringxupcasex
 ;; m97,120stringxupcasex)x
-;; m\n;; 10 &%(+ x x) and %(* x x) and &s
+;; m\n;; 10|%(+ x x) and %(* x x) and %s
 ;; m10*2+3x
 ;; m\n;; 10expx
-;; m5\n;; 20expx&014.2f
-;; m, 7&&0x&02x
-;; m1\n14&*** TODO http://emacsrocks.com/e&02d.html
-;; m1\n10&&convert img&s.jpg -monochrome -resize 50% -rotate 180 img&s_mono.pdf
-;; (setq foo-list '(m1 11+x96&?&c))
-;; m1\n10listx+x96&&convert img&s.jpg -monochrome -resize 50% -rotate 180 img&c_mono.pdf
-;; m1\n10listxnthxfoo-list&&convert img&s.jpg -monochrome -resize 50% -rotate 180 img&c_mono.pdf
-;; m\n;; 16list*xxx)*xx&s:&s:&s
+;; m5\n;; 20expx%014.2f
+;; m, 7|0x%02x
+;; m1\n14|*** TODO http://emacsrocks.com/e%02d.html
+;; m1\n10|convert img%s.jpg -monochrome -resize 50%% -rotate 180 img%s_mono.pdf
+;; (setq foo-list '(m1 11+x96|?%c))
+;; m1\n10listx+x96|convert img%s.jpg -monochrome -resize 50%% -rotate 180 img%c_mono.pdf
+;; m1\n10listxnthxfoo-list|convert img%s.jpg -monochrome -resize 50%% -rotate 180 img%c_mono.pdf
+;; m\n;; 16list*xxx)*xx%s:%s:%s
+;; m\n8|**** TODO Learning from Data Week %(+ x 2) \nSCHEDULED: <%(t-date "Oct 7" (* x 7))> DEADLINE: <%(t-date "Oct 14" (* x 7))>
 ;;
 ;; As you might have guessed, the syntax is as follows:
 ;; m[<range start:=0>][<separator:= >]<range end>[lisp expr][&][format expr]
@@ -172,63 +173,82 @@ expression."
          (s1     (or (nth 1 parsed) " "))
          (n2     (nth 2 parsed))
          (expr   (or (nth 3 parsed) "x"))
-         (fmt    (tiny-extract-sexps (or (nth 4 parsed) "%s")))
-         (n-uses (or (nth 5 parsed) 1))
-         (lexpr (read expr))
-         (n-items (if (and (listp lexpr) (eq (car lexpr) 'list))
-                      (1- (length lexpr))
-                    0))
+         (lexpr  (read expr))
+         (n-have (if (and (listp lexpr) (eq (car lexpr) 'list))
+                     (1- (length lexpr))
+                   0))
+         (expr (if (zerop n-have) `(list ,lexpr) lexpr))
+         (n-have (if (zerop n-have) 1 n-have))
+         (tes    (tiny-extract-sexps (or (nth 4 parsed) "%s")))
+         (fmt    (car tes))
+         (n-need (cl-count nil (cdr tes)))
+         (idx -1)
          (format-expression
-          (concat "(mapconcat (lambda(x) (let (("
-                  (if (zerop n-items) "y" "lst") " %s)) (format \"%s\" "
-                  (mapconcat #'identity
-                             (loop for i from 0 to (1- n-items)
-                                collecting (format "(nth %d lst)" i))
-                             " ")
-                  (mapconcat #'identity (cdr fmt) " ")
-                  (if (or (equal expr "x") (> n-items 0)) "x " "y ")
-                  (mapconcat #'identity
-                             (loop for i from (1+ n-items) to (1- n-uses)
-                                collecting "x")
+          (concat "(mapconcat (lambda(x) (let ((lst %s)) (format \"%s\" "
+                  (mapconcat (lambda (x) (or x
+                                        (if (>= (1+ idx) n-have)
+                                            "x"
+                                          (format "(nth %d lst)" (incf idx)))))
+                             (cdr tes)
                              " ")
                   ")))(number-sequence %s %s) \"%s\")")))
       (unless (>= (read n1) (read n2))
         (format
          format-expression
          expr
-         (car fmt)
+         fmt
          n1
          n2
          s1))))
 
 (defun tiny-extract-sexps (str)
-  "Replace all %(...) forms in STR with %s.
-Return (STR forms)."
-  (let (forms beg)
+  "Retruns (STR & FORMS), where each element of FORMS
+corresponds to a `format'-style % form in STR.
+
+  * %% forms are skipped
+  * %(sexp) is replaced with %s in STR, and put in FORMS
+  * the rest of forms are untouched in STR, and put as nil in FORMS"
+  (let ((start 0)
+        forms beg)
     (condition-case nil
-        (while (setq beg (string-match "%(" str))
+        (while (setq beg (string-match "%" str start))
           (incf beg)
-          (destructuring-bind (sexp . end) (read-from-string str beg)
-            (push (substring str beg end) forms)
-            (setq str (concat (substring str 0 (1- beg))
-                              "s"
-                              (substring str end)))))
+          (setq start beg)
+          (case (aref str beg)
+            (?% (incf start))
+            (?\( (destructuring-bind (sexp . end) (read-from-string str beg)
+                   (push (substring str beg end) forms)
+                   (setq str (concat (substring str 0 beg)
+                                     "s"
+                                     (substring str end)))))
+            (t (push nil forms))))
       (error (message "Malformed sexp: %s" (substring str beg))))
     (cons str (nreverse forms))))
 
+(defun tiny-extract-sexps-test ()
+  (equal
+   (tiny-extract-sexps "expr1 %(+ x x), nothing %%  char %c, hex %x, and expr2 %(* x x), float %0.2f and sym %s")
+   '("expr1 %s, nothing %%  char %c, hex %x, and expr2 %s, float %0.2f and sym %s"
+    "(+ x x)" nil nil "(* x x)" nil nil)))
+
 (defun tiny-mapconcat-parse ()
   "Try to match a snippet of this form:
-m[START][SEPARATOR]END[EXPR][FORMAT]
+m[START][SEPARATOR]END[EXPR]|[FORMAT]
 
-* START - integer, default is 0
-* SEPARATOR - string, default is " "
-* END - integer, required
-* EXPR - lisp expression.
-  Parens are optional if it's unambiguous, e.g.
-  `(* 2 (+ x 3))' can be shortened to *2+x3,
-  and `(exp x)' can be shortened to expx.
+* START     - integer (defaults to 0)
+* SEPARATOR - string  (defaults to \" \")
+* END       - integer (required)
+* EXPR      - lisp expression: function body with argument x (defaults to x)
+  Parens are optional if it's unambiguous:
+  - `(* 2 (+ x 3))'  <-> *2+x3
+  - `(exp x)'        <-> expx
   A closing paren may be added to resolve ambiguity:
-  *2+x3"
+  - `(* 2 (+ x 3) x) <-> *2+x3)
+* FORMAT    - string, `format'-style (defaults to \"%s\")
+  | separator can be omitted if FORMAT starts with %.
+
+Return nil if nothing was matched, otherwise
+ (START SEPARATOR END EXPR FORMAT)"
   (let (n1 s1 n2 expr fmt str n-uses)
     (when (catch 'done
             (cond
@@ -253,7 +273,7 @@ m[START][SEPARATOR]END[EXPR][FORMAT]
             ;; or [expr][fmt]
             ;;
             ;; First, try to match [expr][fmt]
-            (string-match "^\\(.*?\\)\\(&.*\\)?$" str)
+            (string-match "^\\(.*?\\)\\(%.*\\)?$" str)
             (setq expr (match-string-no-properties 1 str))
             (setq fmt  (match-string-no-properties 2 str))
             ;; If it's a valid expression, we're done
@@ -271,29 +291,16 @@ m[START][SEPARATOR]END[EXPR][FORMAT]
                     n1 nil))
             ;; match expr_fmt
             (unless (zerop (length str))
-              (if (string-match "^:?\\([^\n&]*?\\)\\(&[^\n]*\\)?$" str)
+              (if (or (string-match "^\\([^\n%|]*?\\)|\\([^\n]*\\)?$" str)
+                      (string-match "^\\([^\n%|]*?\\)\\(%[^\n]*\\)?$" str))
                   (progn
                     (setq expr (tiny-tokenize (match-string-no-properties 1 str)))
                     (setq fmt (match-string-no-properties 2 str)))
                 (error "couldn't match %s" str)))
+            (when (equal expr "")
+              (setq expr nil))
             t)
-      (when fmt
-        ;; & at the beginning is either a part of format expression
-        ;; or just a separator
-        (when (string-match "^&&" fmt)
-          (setq fmt (substring fmt 2)))
-        (when (eq (aref fmt 0) ?&)
-          (unless (string-match "^&[+-# 0]*[0-9]*.?[0-9]*\\(?:s\\|d\\|o\\|x\\|X\\|e\\|f\\|g\\|c\\|S\\)" fmt)
-            (setq fmt (substring fmt 1))))
-        (setq n-uses (cl-count ?& fmt))
-        (setq fmt
-              (replace-regexp-in-string
-               "&" "%"
-               (replace-regexp-in-string
-                "%" "%%" fmt))))
-      (list n1 s1 n2
-            (unless (equal expr "") expr)
-            fmt n-uses))))
+      (list n1 s1 n2 expr fmt))))
 
 ;; TODO: check for arity: this doesn't work: exptxy
 (defun tiny-tokenize (str)
@@ -364,6 +371,42 @@ m[START][SEPARATOR]END[EXPR][FORMAT]
       (concat
        (apply #'concat (nreverse out))
        (make-string n-paren ?\))))))
+
+(defun tiny-mapconcat-parse-test ()
+  (let* ((tests
+          '(("m10" (nil nil "10" nil nil))
+            ("m5 10" ("5" " " "10" nil nil))
+            ("m5,10" ("5" "," "10" nil nil))
+            ("m5 10*xx" ("5" " " "10" "(* x x)" nil))
+            ("m5 10*xx%x" ("5" " " "10" "(* x x)" "%x"))
+            ("m5 10*xx|0x%x" ("5" " " "10" "(* x x)" "0x%x"))
+            ("m25+x?a%c" (nil nil "25" "(+ x 97)" "%c"))
+            ("m25+x?A%c" (nil nil "25" "(+ x 65)" "%c"))
+            ("m97,122stringx" ("97" "," "122" "(string x)" nil))
+            ("m97,122stringxx" ("97" "," "122" "(string x x)" nil))
+            ("m97,120stringxupcasex" ("97" "," "120" "(string x (upcase x))" nil))
+            ("m97,120stringxupcasex)x" ("97" "," "120" "(string x (upcase x) x)" nil))
+            ("m\\n;; 10|%(+ x x) and %(* x x) and %s"
+             (nil "\\n;; " "10" nil "%(+ x x) and %(* x x) and %s"))))
+         (fails (cl-remove-if
+                 (lambda (test)
+                   (equal (cadr test)
+                          (with-temp-buffer
+                            (insert (car test))
+                            (tiny-mapconcat-parse))))
+                 tests)))
+    (when fails
+      (message "`tiny-test' fails %s" fails))))
+;; (tiny-mapconcat-parse-test)
+
+(defun t-date (s &optional shift)
+  (let ((time (->> (current-time)
+                decode-time
+                (org-read-date-analyze s nil)
+                (apply 'encode-time))))
+    (when shift
+      (setq time (time-add time (days-to-time shift))))
+    (format-time-string "%Y-%m-%d %a" time)))
 
 (provide 'tiny)
 ;;; tiny.el ends here
