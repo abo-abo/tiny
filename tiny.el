@@ -87,6 +87,7 @@
 (eval-when-compile
   (require 'cl))
 (require 'help-fns)
+(require 'org)
 
 (defvar tiny-beg nil
   "Last matched snippet start position.")
@@ -119,24 +120,17 @@ At the moment, only `tiny-mapconcat' is supported.
   (or
    (and (looking-back ")")
         (ignore-errors
-          (tiny-replace-last-sexp)))
+          (let ((sexp (preceding-sexp)))
+            (unless (eq (car sexp) 'lambda)
+              (let ((value (eval sexp)))
+                (kill-sexp -1)
+                (insert (format "%s" value))
+                t)))))
    (save-excursion (tiny-replace-sexp-desperately))))
 
-(defun tiny-replace-last-sexp ()
-  (interactive)
-  (let ((sexp (preceding-sexp)))
-    (unless (eq (car sexp) 'lambda)
-      (let ((value (eval sexp)))
-        (kill-sexp -1)
-        (insert (format "%s" value))
-        t))))
-
 (defun tiny-replace-sexp-desperately ()
-  "Try to eval the current sexp.
-Replace it if there's no error.
-Go upwards until it's possible to eval.
-Skip lambdas."
-  (interactive)
+  "Eval and replace the current sexp.
+On error, go upwards and try again. Skip lambdas."
   (condition-case nil
       (tiny-up-list)
     (error "can't go up this list"))
@@ -152,16 +146,13 @@ Skip lambdas."
              (insert (format "%s" value)))
          (error (tiny-replace-sexp-desperately)))))))
 
-(defun tiny-beginning-of-string ()
-  "If inside string, move point to its beginning"
-  (interactive)
-  (let ((p (nth 8 (syntax-ppss))))
-    (when (eq (char-after p) ?\")
-      (goto-char p))))
-
 (defun tiny-up-list ()
   (interactive)
-  (tiny-beginning-of-string)
+  ;; check if inside string
+  (let ((p (nth 8 (syntax-ppss))))
+    (when (eq (char-after p) ?\")
+      ;; go to beginning for string
+      (goto-char p)))
   (up-list))
 
 (defun tiny-mapconcat ()
@@ -369,10 +360,10 @@ Return nil if nothing was matched, otherwise
          (make-string n-paren ?\)))))))
 
 (defun t-date (s &optional shift)
-  (let ((time (->> (current-time)
-                decode-time
-                (org-read-date-analyze s nil)
-                (apply 'encode-time))))
+  (let ((time (apply 'encode-time
+                     (org-read-date-analyze
+                      s nil
+                      (decode-time (current-time))))))
     (when shift
       (setq time (time-add time (days-to-time shift))))
     (format-time-string "%Y-%m-%d %a" time)))
