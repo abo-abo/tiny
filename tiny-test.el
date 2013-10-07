@@ -140,6 +140,14 @@ SCHEDULED: <2013-11-25 Mon> DEADLINE: <2013-12-02 Mon>
 SCHEDULED: <2013-12-02 Mon> DEADLINE: <2013-12-09 Mon>"
                  )))
 
+(ert-deftest tiny-replace-this-sexp ()
+  (should (equal (with-text-value "(mapcar (lambda (x) (* x x)) '(1 2 3))"
+                   (lambda()(goto-char 16)(tiny-replace-this-sexp)(buffer-string)))
+                 "(1 4 9)"))
+  (should (equal (with-text-value "(mapcar (lambda (x) (* x x)) '(1 2 3))"
+                   (lambda()(goto-char 2)(tiny-replace-this-sexp)(buffer-string)))
+                 "(1 4 9)")))
+
 (ert-deftest tiny-tokenize ()
     (should (equal (tiny-tokenize "stringxx") "(string x x)"))
     (should (equal (tiny-tokenize "*2+xxx") "(* 2 (+ x x x))"))
