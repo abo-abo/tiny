@@ -300,12 +300,9 @@ Return nil if nothing was matched, otherwise
 (defun tiny-tokenize (str)
   (unless (equal str "")
     (ignore-errors
-      (let ((i 0)
-            (j 1)
+      (let ((i 0) (j 1)
             (len (length str))
-            sym
-            s
-            out
+            sym s out allow-spc
             (n-paren 0)
             (expect-fun t))
         (while (< i len)
@@ -314,11 +311,11 @@ Return nil if nothing was matched, otherwise
                   ((string= s "x")
                    (push s out)
                    (push " " out))
-                  ((string= s "y")
-                   (push s out)
-                   (push " " out))
                   ((string= s " ")
-                   (error "unexpected \" \""))
+                   (if allow-spc
+                       t
+                     (error "unexpected \" \"")))
+                  ;; special syntax to read chars
                   ((string= s "?")
                    (setq s (format "%s" (read (substring str i (incf j)))))
                    (push s out)
@@ -330,10 +327,12 @@ Return nil if nothing was matched, otherwise
                      (error "unexpected \")\""))
                    (when (string= (car out) " ")
                      (pop out))
-                   (push ") " out))
+                   (push ")" out)
+                   (push " " out))
                   ((string= s "(")
                    ;; open paren is used sometimes
                    ;; when there are numbers in the expression
+                   (setq expect-fun t)
                    (incf n-paren)
                    (push "(" out))
                   ((progn (setq sym (intern-soft s))
@@ -341,10 +340,12 @@ Return nil if nothing was matched, otherwise
                             ;; general functionp
                             ((not (eq t (help-function-arglist sym)))
                              (setq expect-fun)
-                             ;; (when (zerop n-paren)
-                             ;;   (push "(" out))
-                             (push "(" out)
-                             (incf n-paren))
+                             (setq allow-spc t)
+                             ;; (when (zerop n-paren) (push "(" out))
+                             (unless (equal (car out) "(")
+                               (push "(" out)
+                               (incf n-paren))
+                             t)
                             ((and sym (boundp sym) (not expect-fun))
                              t)))
                    (push s out)
