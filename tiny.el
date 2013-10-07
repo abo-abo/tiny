@@ -114,39 +114,35 @@ At the moment, only `tiny-mapconcat' is supported.
 (defun tiny-setup-default ()
   (global-set-key (kbd "C-;") 'tiny-expand))
 
-(defun tiny-replace-this-sexp ()
-  "Intelligently replace current sexp."
-  (interactive)
-  (or
-   (and (looking-back ")")
-        (ignore-errors
-          (let ((sexp (preceding-sexp)))
-            (unless (eq (car sexp) 'lambda)
-              (let ((value (eval sexp)))
-                (kill-sexp -1)
-                (insert (format "%s" value))
-                t)))))
-   (save-excursion (tiny-replace-sexp-desperately))))
-
-(defun tiny-replace-sexp-desperately ()
-  "Eval and replace the current sexp.
-On error, go upwards and try again. Skip lambdas."
-  (condition-case nil
-      (tiny-up-list)
-    (error "can't go up this list"))
+(defun tiny-replace-preceding-sexp ()
+  (unless (looking-back ")")
+    (error "bad location"))
   (let ((sexp (preceding-sexp)))
-    (cond
-      ;; since lambda evaluates to itself, skip it
-      ((eq (car sexp) 'lambda)
-       (tiny-replace-sexp-desperately))
-      (t
-       (condition-case nil
-           (let ((value (eval sexp)))
-             (kill-sexp -1)
-             (insert (format "%s" value)))
-         (error (tiny-replace-sexp-desperately)))))))
+    (if (eq (car sexp) 'lambda)
+        (error "lambda evaluates to itself")
+      (let ((value (eval sexp)))
+        (kill-sexp -1)
+        (insert (format "%s" value))))))
+
+(defun tiny-replace-this-sexp ()
+  "Eval and replace the current sexp.
+On error go up list and try again."
+  (interactive)
+  (catch 'success
+    (while t
+      (ignore-errors
+        (tiny-replace-preceding-sexp)
+        (throw 'success t))
+      ;; if can't replace, go up list
+      (condition-case nil
+          (tiny-up-list)
+        (error
+         (message "reached the highest point, couldn't eval.")
+         (throw 'success nil))))))
 
 (defun tiny-up-list ()
+  "An `up-list' that can exit from string.
+Must throw an error when can't go up further."
   (interactive)
   ;; check if inside string
   (let ((p (nth 8 (syntax-ppss))))
