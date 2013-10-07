@@ -1,33 +1,45 @@
-(defun tiny-extract-sexps-test ()
-  (equal
-   (tiny-extract-sexps "expr1 %(+ x x), nothing %%  char %c, hex %x, and expr2 %(* x x), float %0.2f and sym %s")
-   '("expr1 %s, nothing %%  char %c, hex %x, and expr2 %s, float %0.2f and sym %s"
-    "(+ x x)" nil nil "(* x x)" nil nil)))
+(require 'tiny)
 
-(defun tiny-mapconcat-parse-test ()
-  (let* ((tests
-          '(("m10" (nil nil "10" nil nil))
-            ("m5%x" (nil nil "5" nil "%x"))
-            ("m5 10" ("5" " " "10" nil nil))
-            ("m5,10" ("5" "," "10" nil nil))
-            ("m5 10*xx" ("5" " " "10" "(* x x)" nil))
-            ("m5 10*xx%x" ("5" " " "10" "(* x x)" "%x"))
-            ("m5 10*xx|0x%x" ("5" " " "10" "(* x x)" "0x%x"))
-            ("m25+x?a%c" (nil nil "25" "(+ x 97)" "%c"))
-            ("m25+x?A%c" (nil nil "25" "(+ x 65)" "%c"))
-            ("m97,122stringx" ("97" "," "122" "(string x)" nil))
-            ("m97,122stringxx" ("97" "," "122" "(string x x)" nil))
-            ("m97,120stringxupcasex" ("97" "," "120" "(string x (upcase x))" nil))
-            ("m97,120stringxupcasex)x" ("97" "," "120" "(string x (upcase x) x)" nil))
-            ("m\\n;; 10|%(+ x x) and %(* x x) and %s"
-             (nil "\\n;; " "10" nil "%(+ x x) and %(* x x) and %s"))))
-         (fails (cl-remove-if
-                 (lambda (test)
-                   (equal (cadr test)
-                          (with-temp-buffer
-                            (insert (car test))
-                            (tiny-mapconcat-parse))))
-                 tests)))
-    (when fails
-      (message "`tiny-test' fails %s" fails))))
-;; (tiny-mapconcat-parse-test)
+(defun with-text-value (txt fn &rest args)
+  "Return the result of (apply 'FN ARGS), in a temp buffer with TXT,
+with point at the end of TXT."
+  (with-temp-buffer
+    (insert txt)
+    (apply fn args)))
+
+(ert-deftest tiny-mapconcat-parse-test ()
+  (should (equal (with-text-value "m10" #'tiny-mapconcat-parse)
+                 '(nil nil "10" nil nil)))
+  (should (equal (with-text-value "m5%x" #'tiny-mapconcat-parse)
+                 '(nil nil "5" nil "%x")))
+  (should (equal (with-text-value "m5 10" #'tiny-mapconcat-parse)
+                 '("5" " " "10" nil nil)))
+  (should (equal (with-text-value "m5,10" #'tiny-mapconcat-parse)
+                 '("5" "," "10" nil nil)))
+  (should (equal (with-text-value "m5 10*xx" #'tiny-mapconcat-parse)
+                 '("5" " " "10" "(* x x)" nil)))
+  (should (equal (with-text-value "m5 10*xx%x" #'tiny-mapconcat-parse)
+                 '("5" " " "10" "(* x x)" "%x")))
+  (should (equal (with-text-value "m5 10*xx|0x%x" #'tiny-mapconcat-parse)
+                 '("5" " " "10" "(* x x)" "0x%x")))
+  (should (equal (with-text-value "m25+x?a%c" #'tiny-mapconcat-parse)
+                 '(nil nil "25" "(+ x 97)" "%c")))
+  (should (equal (with-text-value "m25+x?A%c" #'tiny-mapconcat-parse)
+                 '(nil nil "25" "(+ x 65)" "%c")))
+  (should (equal (with-text-value "m97,122stringx" #'tiny-mapconcat-parse)
+                 '("97" "," "122" "(string x)" nil)))
+  (should (equal (with-text-value "m97,122stringxx" #'tiny-mapconcat-parse)
+                 '("97" "," "122" "(string x x)" nil)))
+  (should (equal (with-text-value "m97,120stringxupcasex" #'tiny-mapconcat-parse)
+                 '("97" "," "120" "(string x (upcase x))" nil)))
+  (should (equal (with-text-value "m97,120stringxupcasex)x" #'tiny-mapconcat-parse)
+                 '("97" "," "120" "(string x (upcase x) x)" nil)))
+  (should (equal (with-text-value "m\\n;; 10|%(+ x x) and %(* x x) and %s" #'tiny-mapconcat-parse)
+                 '(nil "\\n;; " "10" nil "%(+ x x) and %(* x x) and %s"))))
+
+(ert-deftest tiny-extract-sexps-test ()
+  (should (equal (tiny-extract-sexps "expr1 %(+ x x), nothing %%  char %c, hex %x, and expr2 %(* x x), float %0.2f and sym %s")
+                 '("expr1 %s, nothing %%  char %c, hex %x, and expr2 %s, float %0.2f and sym %s"
+                   "(+ x x)" nil nil "(* x x)" nil nil))))
+
+(provide 'tiny-test)
