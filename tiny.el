@@ -114,16 +114,6 @@ At the moment, only `tiny-mapconcat' is supported.
 (defun tiny-setup-default ()
   (global-set-key (kbd "C-;") 'tiny-expand))
 
-(defun tiny-replace-preceding-sexp ()
-  (unless (looking-back ")")
-    (error "bad location"))
-  (let ((sexp (preceding-sexp)))
-    (if (eq (car sexp) 'lambda)
-        (error "lambda evaluates to itself")
-      (let ((value (eval sexp)))
-        (kill-sexp -1)
-        (insert (format "%s" value))))))
-
 (defun tiny-replace-this-sexp ()
   "Eval and replace the current sexp.
 On error go up list and try again."
@@ -131,8 +121,15 @@ On error go up list and try again."
   (catch 'success
     (while t
       (ignore-errors
-        (tiny-replace-preceding-sexp)
-        (throw 'success t))
+        (unless (looking-back ")")
+          (error "bad location"))
+        (let ((sexp (preceding-sexp)))
+          (if (eq (car sexp) 'lambda)
+              (error "lambda evaluates to itself")
+            (let ((value (eval sexp)))
+              (kill-sexp -1)
+              (insert (format "%s" value))
+              (throw 'success t)))))
       ;; if can't replace, go up list
       (condition-case nil
           (tiny-up-list)
