@@ -152,38 +152,39 @@ Must throw an error when can't go up further."
   "Take the output of `tiny-mapconcat-parse' and replace
 the null values with defaults and return the formatted
 expression."
-  (let* ((parsed (tiny-mapconcat-parse))
-         (n1     (or (nth 0 parsed) "0"))
-         (s1     (or (nth 1 parsed) " "))
-         (n2     (nth 2 parsed))
-         (expr   (or (nth 3 parsed) "x"))
-         (lexpr  (read expr))
-         (n-have (if (and (listp lexpr) (eq (car lexpr) 'list))
-                     (1- (length lexpr))
-                   0))
-         (expr (if (zerop n-have) `(list ,lexpr) lexpr))
-         (n-have (if (zerop n-have) 1 n-have))
-         (tes    (tiny-extract-sexps (or (nth 4 parsed) "%s")))
-         (fmt    (car tes))
-         (n-need (cl-count nil (cdr tes)))
-         (idx -1)
-         (format-expression
-          (concat "(mapconcat (lambda(x) (let ((lst %s)) (format \"%s\" "
-                  (mapconcat (lambda (x) (or x
-                                        (if (>= (1+ idx) n-have)
-                                            "x"
-                                          (format "(nth %d lst)" (incf idx)))))
-                             (cdr tes)
-                             " ")
-                  ")))(number-sequence %s %s) \"%s\")")))
-      (unless (>= (read n1) (read n2))
-        (format
-         format-expression
-         expr
-         fmt
-         n1
-         n2
-         s1))))
+  (let ((parsed (tiny-mapconcat-parse)))
+    (when parsed
+      (let* ((n1     (or (nth 0 parsed) "0"))
+             (s1     (or (nth 1 parsed) " "))
+             (n2     (nth 2 parsed))
+             (expr   (or (nth 3 parsed) "x"))
+             (lexpr  (read expr))
+             (n-have (if (and (listp lexpr) (eq (car lexpr) 'list))
+                         (1- (length lexpr))
+                       0))
+             (expr (if (zerop n-have) `(list ,lexpr) lexpr))
+             (n-have (if (zerop n-have) 1 n-have))
+             (tes    (tiny-extract-sexps (or (nth 4 parsed) "%s")))
+             (fmt    (car tes))
+             (n-need (cl-count nil (cdr tes)))
+             (idx -1)
+             (format-expression
+              (concat "(mapconcat (lambda(x) (let ((lst %s)) (format \"%s\" "
+                      (mapconcat (lambda (x) (or x
+                                            (if (>= (1+ idx) n-have)
+                                                "x"
+                                              (format "(nth %d lst)" (incf idx)))))
+                                 (cdr tes)
+                                 " ")
+                      ")))(number-sequence %s %s) \"%s\")")))
+        (unless (>= (read n1) (read n2))
+          (format
+           format-expression
+           expr
+           fmt
+           n1
+           n2
+           s1))))))
 
 (defun tiny-extract-sexps (str)
   "Returns (STR & FORMS), where each element of FORMS
@@ -241,12 +242,13 @@ Return nil if nothing was matched, otherwise
                        n1 nil)
                  (throw 'done t)))
               ;; else capture the whole thing
-              ((looking-back "\\bm\\([^\n]*\\)")
+              ((looking-back "\\bm\\([^%|\n]*[0-9][^\n]*\\)")
                (setq str (match-string-no-properties 1)
                      tiny-beg (match-beginning 0)
                      tiny-end (match-end 0))
                (when (zerop (length str))
-                 (throw 'done nil))))
+                 (throw 'done nil)))
+              (t (throw 'done nil)))
             ;; at this point, `str' should be either [sep]<num>[expr][fmt]
             ;; or [expr][fmt]
             ;;
