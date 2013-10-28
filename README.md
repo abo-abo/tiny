@@ -53,25 +53,40 @@ The advantages are:
 You can even schedule and deadline:
 
     m\n8|**** TODO Learning from Data Week %(+ x 2) \nSCHEDULED: <%(date "Oct 7" (* x 7))> DEADLINE: <%(date "Oct 14" (* x 7))>
-    
-    **** TODO Learning from Data Week 2 
+
+    **** TODO Learning from Data Week 2
     SCHEDULED: <2013-10-07 Mon> DEADLINE: <2013-10-14 Mon>
-    **** TODO Learning from Data Week 3 
+    **** TODO Learning from Data Week 3
     SCHEDULED: <2013-10-14 Mon> DEADLINE: <2013-10-21 Mon>
-    **** TODO Learning from Data Week 4 
+    **** TODO Learning from Data Week 4
     SCHEDULED: <2013-10-21 Mon> DEADLINE: <2013-10-28 Mon>
-    **** TODO Learning from Data Week 5 
+    **** TODO Learning from Data Week 5
     SCHEDULED: <2013-10-28 Mon> DEADLINE: <2013-11-04 Mon>
-    **** TODO Learning from Data Week 6 
+    **** TODO Learning from Data Week 6
     SCHEDULED: <2013-11-04 Mon> DEADLINE: <2013-11-11 Mon>
-    **** TODO Learning from Data Week 7 
+    **** TODO Learning from Data Week 7
     SCHEDULED: <2013-11-11 Mon> DEADLINE: <2013-11-18 Mon>
-    **** TODO Learning from Data Week 8 
+    **** TODO Learning from Data Week 8
     SCHEDULED: <2013-11-18 Mon> DEADLINE: <2013-11-25 Mon>
-    **** TODO Learning from Data Week 9 
+    **** TODO Learning from Data Week 9
     SCHEDULED: <2013-11-25 Mon> DEADLINE: <2013-12-02 Mon>
-    **** TODO Learning from Data Week 10 
+    **** TODO Learning from Data Week 10
     SCHEDULED: <2013-12-02 Mon> DEADLINE: <2013-12-09 Mon>
+
+Here's how to schedule a task that repeats Monday through Friday at 10:00, every week:
+
+    m0\n4|** TODO Something work-related\nSCHEDULED: <%(date "mon" x) 10:00 +1w>
+
+    ** TODO Something work-related
+    SCHEDULED: <2013-11-04 Mon 10:00 +1w>
+    ** TODO Something work-related
+    SCHEDULED: <2013-11-05 Tue 10:00 +1w>
+    ** TODO Something work-related
+    SCHEDULED: <2013-11-06 Wed 10:00 +1w>
+    ** TODO Something work-related
+    SCHEDULED: <2013-11-07 Thu 10:00 +1w>
+    ** TODO Something work-related
+    SCHEDULED: <2013-11-08 Fri 10:00 +1w>
 
 ### Setup
 In `~/.emacs`:
