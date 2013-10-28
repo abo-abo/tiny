@@ -122,7 +122,7 @@ convert img10.jpg -monochrome -resize 50% -rotate 180 img10_mono.pdf"))
 ;; 2744:196:14
 ;; 3375:225:15
 ;; 4096:256:16"))
-  (should (equal (with-text-value "m\\n8|**** TODO Learning from Data Week %(+ x 2)\\nSCHEDULED: <%(t-date \"Oct 7\" (* x 7))> DEADLINE: <%(t-date \"Oct 14\" (* x 7))>"
+  (should (equal (with-text-value "m\\n8|**** TODO Learning from Data Week %(+ x 2)\\nSCHEDULED: <%(date \"Oct 7\" (* x 7))> DEADLINE: <%(date \"Oct 14\" (* x 7))>"
                    (lambda()(eval (read (tiny-mapconcat)))))
                  "**** TODO Learning from Data Week 2
 SCHEDULED: <2013-10-07 Mon> DEADLINE: <2013-10-14 Mon>
@@ -142,7 +142,7 @@ SCHEDULED: <2013-11-18 Mon> DEADLINE: <2013-11-25 Mon>
 SCHEDULED: <2013-11-25 Mon> DEADLINE: <2013-12-02 Mon>
 **** TODO Learning from Data Week 10
 SCHEDULED: <2013-12-02 Mon> DEADLINE: <2013-12-09 Mon>"))
-  (should (string= (with-text-value "m\\n4|**** TODO Classical Mechanics Week %(+ x 5)\\nSCHEDULED: <%(t-date \"Oct 15\" (* x 7))> DEADLINE: <%(t-date \"Oct 23\" (* x 7))>"
+  (should (string= (with-text-value "m\\n4|**** TODO Classical Mechanics Week %(+ x 5)\\nSCHEDULED: <%(date \"Oct 15\" (* x 7))> DEADLINE: <%(date \"Oct 23\" (* x 7))>"
                      (lambda()(eval (read (tiny-mapconcat)))))
                    "**** TODO Classical Mechanics Week 5
 SCHEDULED: <2013-10-15 Tue> DEADLINE: <2013-10-23 Wed>

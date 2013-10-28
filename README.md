@@ -52,7 +52,7 @@ The advantages are:
 
 You can even schedule and deadline:
 
-    m\n8|**** TODO Learning from Data Week %(+ x 2) \nSCHEDULED: <%(t-date "Oct 7" (* x 7))> DEADLINE: <%(t-date "Oct 14" (* x 7))>
+    m\n8|**** TODO Learning from Data Week %(+ x 2) \nSCHEDULED: <%(date "Oct 7" (* x 7))> DEADLINE: <%(date "Oct 14" (* x 7))>
     
     **** TODO Learning from Data Week 2 
     SCHEDULED: <2013-10-07 Mon> DEADLINE: <2013-10-14 Mon>

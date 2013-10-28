@@ -64,7 +64,7 @@
 ;; m1\n10listx+x96|convert img%s.jpg -monochrome -resize 50%% -rotate 180 img%c_mono.pdf
 ;; m1\n10listxnthxfoo-list|convert img%s.jpg -monochrome -resize 50%% -rotate 180 img%c_mono.pdf
 ;; m\n;; 16list*xxx)*xx%s:%s:%s
-;; m\n8|**** TODO Learning from Data Week %(+ x 2) \nSCHEDULED: <%(t-date "Oct 7" (* x 7))> DEADLINE: <%(t-date "Oct 14" (* x 7))>
+;; m\n8|**** TODO Learning from Data Week %(+ x 2) \nSCHEDULED: <%(date "Oct 7" (* x 7))> DEADLINE: <%(date "Oct 14" (* x 7))>
 ;;
 ;; As you might have guessed, the syntax is as follows:
 ;; m[<range start:=0>][<separator:= >]<range end>[lisp expr]|[format expr]
@@ -215,7 +215,10 @@ corresponds to a `format'-style % form in STR.
                  (incf beg (length fexp))
                  (destructuring-bind (sexp . end)
                      (read-from-string str beg)
-                   (push (substring str beg end) forms)
+                   (push
+                    (replace-regexp-in-string "(date" "(tiny-date"
+                                              (substring str beg end))
+                    forms)
                    (setq str (concat (substring str 0 beg)
                                      (if (string= fexp "%") "s" "")
                                      (substring str end)))))
@@ -367,7 +370,7 @@ Return nil if nothing was matched, otherwise
          (apply #'concat (nreverse out))
          (make-string n-paren ?\)))))))
 
-(defun t-date (s &optional shift)
+(defun tiny-date (s &optional shift)
   (let ((time (apply 'encode-time
                      (org-read-date-analyze
                       s nil
