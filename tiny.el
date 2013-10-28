@@ -186,6 +186,14 @@ expression."
            n2
            s1))))))
 
+(defconst tiny-format-str
+  (let ((flags "[+ #-0]\\{0,1\\}")
+        (width "[0-9]*")
+        (precision "\\(?:\\.[0-9]+\\)?")
+        (character "[sdoxXefgcS]?"))
+    (format "\\(%s%s%s%s\\)("
+            flags width precision character)))
+
 (defun tiny-extract-sexps (str)
   "Returns (STR & FORMS), where each element of FORMS
 corresponds to a `format'-style % form in STR.
@@ -197,16 +205,21 @@ corresponds to a `format'-style % form in STR.
         forms beg)
     (condition-case nil
         (while (setq beg (string-match "%" str start))
-          (incf beg)
-          (setq start beg)
-          (case (aref str beg)
-            (?% (incf start))
-            (?\( (destructuring-bind (sexp . end) (read-from-string str beg)
+          (setq start (1+ beg))
+
+          (cond ((= ?% (aref str (1+ beg)))
+                 (incf start))
+
+                ((and (eq beg (string-match tiny-format-str str beg))
+                      (setq fexp (match-string-no-properties 1 str)))
+                 (incf beg (length fexp))
+                 (destructuring-bind (sexp . end)
+                     (read-from-string str beg)
                    (push (substring str beg end) forms)
                    (setq str (concat (substring str 0 beg)
-                                     "s"
+                                     (if (string= fexp "%") "s" "")
                                      (substring str end)))))
-            (t (push nil forms))))
+                (t (push nil forms))))
       (error (message "Malformed sexp: %s" (substring str beg))))
     (cons str (nreverse forms))))
 

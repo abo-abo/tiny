@@ -40,7 +40,10 @@ with point at the end of TXT."
 (ert-deftest tiny-extract-sexps ()
   (should (equal (tiny-extract-sexps "expr1 %(+ x x), nothing %%  char %c, hex %x, and expr2 %(* x x), float %0.2f and sym %s")
                  '("expr1 %s, nothing %%  char %c, hex %x, and expr2 %s, float %0.2f and sym %s"
-                   "(+ x x)" nil nil "(* x x)" nil nil))))
+                   "(+ x x)" nil nil "(* x x)" nil nil)))
+  (should (equal (tiny-extract-sexps "m1\n5| (%c(+ x ?a -1)) %0.1f(* x 0.2)")
+                 '("m1
+5| (%c) %0.1f" "(+ x ?a -1)" "(* x 0.2)"))))
 
 (ert-deftest tiny-mapconcat ()
   (should (equal (with-text-value "m10" (lambda()(eval (read (tiny-mapconcat)))))
