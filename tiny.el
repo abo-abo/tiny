@@ -58,6 +58,7 @@
 ;; m\n;; 10expx
 ;; m5\n;; 20expx%014.2f
 ;; m, 7|0x%02x
+;; m10|%0.2f
 ;; m1\n14|*** TODO http://emacsrocks.com/e%02d.html
 ;; m1\n10|convert img%s.jpg -monochrome -resize 50%% -rotate 180 img%s_mono.pdf
 ;; (setq foo-list '(m1 11+x96|?%c))
@@ -118,24 +119,31 @@ At the moment, only `tiny-mapconcat' is supported.
   "Eval and replace the current sexp.
 On error go up list and try again."
   (interactive)
-  (catch 'success
-    (while t
-      (ignore-errors
-        (unless (looking-back ")")
-          (error "bad location"))
-        (let ((sexp (preceding-sexp)))
-          (if (eq (car sexp) 'lambda)
-              (error "lambda evaluates to itself")
-            (let ((value (eval sexp)))
-              (kill-sexp -1)
-              (insert (format "%s" value))
-              (throw 'success t)))))
-      ;; if can't replace, go up list
-      (condition-case nil
-          (tiny-up-list)
-        (error
-         (message "reached the highest point, couldn't eval.")
-         (throw 'success nil))))))
+  (if (region-active-p)
+      (let ((s (buffer-substring-no-properties
+                (region-beginning)
+                (region-end))))
+        (delete-region (region-beginning)
+                       (region-end))
+        (insert (format "%s" (eval (read s)))))
+    (catch 'success
+      (while t
+        (ignore-errors
+          (unless (looking-back ")")
+            (error "bad location"))
+          (let ((sexp (preceding-sexp)))
+            (if (eq (car sexp) 'lambda)
+                (error "lambda evaluates to itself")
+              (let ((value (eval sexp)))
+                (kill-sexp -1)
+                (insert (format "%s" value))
+                (throw 'success t)))))
+        ;; if can't replace, go up list
+        (condition-case nil
+            (tiny-up-list)
+          (error
+           (message "reached the highest point, couldn't eval.")
+           (throw 'success nil)))))))
 
 (defun tiny-up-list ()
   "An `up-list' that can exit from string.
@@ -269,7 +277,7 @@ Return nil if nothing was matched, otherwise
             ;; or [expr][fmt]
             ;;
             ;; First, try to match [expr][fmt]
-            (string-match "^\\(.*?\\)\\(%.*\\)?$" str)
+            (string-match "^\\(.*?\\)|?\\(%.*\\)?$" str)
             (setq expr (match-string-no-properties 1 str))
             (setq fmt  (match-string-no-properties 2 str))
             ;; If it's a valid expression, we're done
@@ -293,14 +301,15 @@ Return nil if nothing was matched, otherwise
                     (setq expr (tiny-tokenize (match-string-no-properties 1 str)))
                     (setq fmt (match-string-no-properties 2 str)))
                 (error "couldn't match %s" str)))
-            (when (equal expr "")
-              (setq expr nil))
             t)
+      (when (equal expr "")
+        (setq expr nil))
       (list n1 s1 n2 expr fmt))))
 
 ;; TODO: check for arity: this doesn't work: exptxy
 (defun tiny-tokenize (str)
-  (unless (equal str "")
+  (if (equal str "")
+      ""
     (ignore-errors
       (let ((i 0) (j 1)
             (len (length str))

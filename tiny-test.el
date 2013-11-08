@@ -35,7 +35,9 @@ with point at the end of TXT."
   (should (equal (with-text-value "m97,120stringxupcasex)x" #'tiny-mapconcat-parse)
                  '("97" "," "120" "(string x (upcase x) x)" nil)))
   (should (equal (with-text-value "m\\n;; 10|%(+ x x) and %(* x x) and %s" #'tiny-mapconcat-parse)
-                 '(nil "\\n;; " "10" nil "%(+ x x) and %(* x x) and %s"))))
+                 '(nil "\\n;; " "10" nil "%(+ x x) and %(* x x) and %s")))
+  (should (equal (with-text-value "m10|%0.2f" #'tiny-mapconcat-parse)
+                 '(nil nil "10" nil "%0.2f"))))
 
 (ert-deftest tiny-extract-sexps ()
   (should (equal (tiny-extract-sexps "expr1 %(+ x x), nothing %%  char %c, hex %x, and expr2 %(* x x), float %0.2f and sym %s")
@@ -125,35 +127,35 @@ convert img10.jpg -monochrome -resize 50% -rotate 180 img10_mono.pdf"))
   (should (equal (with-text-value "m\\n8|**** TODO Learning from Data Week %(+ x 2)\\nSCHEDULED: <%(date \"Oct 7\" (* x 7))> DEADLINE: <%(date \"Oct 14\" (* x 7))>"
                    (lambda()(eval (read (tiny-mapconcat)))))
                  "**** TODO Learning from Data Week 2
-SCHEDULED: <2013-10-07 Mon> DEADLINE: <2013-10-14 Mon>
+SCHEDULED: <2014-10-07 Tue> DEADLINE: <2014-10-14 Tue>
 **** TODO Learning from Data Week 3
-SCHEDULED: <2013-10-14 Mon> DEADLINE: <2013-10-21 Mon>
+SCHEDULED: <2014-10-14 Tue> DEADLINE: <2014-10-21 Tue>
 **** TODO Learning from Data Week 4
-SCHEDULED: <2013-10-21 Mon> DEADLINE: <2013-10-28 Mon>
+SCHEDULED: <2014-10-21 Tue> DEADLINE: <2014-10-28 Tue>
 **** TODO Learning from Data Week 5
-SCHEDULED: <2013-10-28 Mon> DEADLINE: <2013-11-04 Mon>
+SCHEDULED: <2014-10-28 Tue> DEADLINE: <2014-11-04 Tue>
 **** TODO Learning from Data Week 6
-SCHEDULED: <2013-11-04 Mon> DEADLINE: <2013-11-11 Mon>
+SCHEDULED: <2014-11-04 Tue> DEADLINE: <2014-11-11 Tue>
 **** TODO Learning from Data Week 7
-SCHEDULED: <2013-11-11 Mon> DEADLINE: <2013-11-18 Mon>
+SCHEDULED: <2014-11-11 Tue> DEADLINE: <2014-11-18 Tue>
 **** TODO Learning from Data Week 8
-SCHEDULED: <2013-11-18 Mon> DEADLINE: <2013-11-25 Mon>
+SCHEDULED: <2014-11-18 Tue> DEADLINE: <2014-11-25 Tue>
 **** TODO Learning from Data Week 9
-SCHEDULED: <2013-11-25 Mon> DEADLINE: <2013-12-02 Mon>
+SCHEDULED: <2014-11-25 Tue> DEADLINE: <2014-12-02 Tue>
 **** TODO Learning from Data Week 10
-SCHEDULED: <2013-12-02 Mon> DEADLINE: <2013-12-09 Mon>"))
+SCHEDULED: <2014-12-02 Tue> DEADLINE: <2014-12-09 Tue>"))
   (should (string= (with-text-value "m\\n4|**** TODO Classical Mechanics Week %(+ x 5)\\nSCHEDULED: <%(date \"Oct 15\" (* x 7))> DEADLINE: <%(date \"Oct 23\" (* x 7))>"
                      (lambda()(eval (read (tiny-mapconcat)))))
                    "**** TODO Classical Mechanics Week 5
-SCHEDULED: <2013-10-15 Tue> DEADLINE: <2013-10-23 Wed>
+SCHEDULED: <2014-10-15 Wed> DEADLINE: <2014-10-23 Thu>
 **** TODO Classical Mechanics Week 6
-SCHEDULED: <2013-10-22 Tue> DEADLINE: <2013-10-30 Wed>
+SCHEDULED: <2014-10-22 Wed> DEADLINE: <2014-10-30 Thu>
 **** TODO Classical Mechanics Week 7
-SCHEDULED: <2013-10-29 Tue> DEADLINE: <2013-11-06 Wed>
+SCHEDULED: <2014-10-29 Wed> DEADLINE: <2014-11-06 Thu>
 **** TODO Classical Mechanics Week 8
-SCHEDULED: <2013-11-05 Tue> DEADLINE: <2013-11-13 Wed>
+SCHEDULED: <2014-11-05 Wed> DEADLINE: <2014-11-13 Thu>
 **** TODO Classical Mechanics Week 9
-SCHEDULED: <2013-11-12 Tue> DEADLINE: <2013-11-20 Wed>")))
+SCHEDULED: <2014-11-12 Wed> DEADLINE: <2014-11-20 Thu>")))
 
 (ert-deftest tiny-replace-this-sexp ()
   (should (equal (with-text-value "(mapcar (lambda (x) (* x x)) '(1 2 3))"
