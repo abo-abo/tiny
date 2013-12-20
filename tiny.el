@@ -68,23 +68,25 @@
 ;; m\n8|**** TODO Learning from Data Week %(+ x 2) \nSCHEDULED: <%(date "Oct 7" (* x 7))> DEADLINE: <%(date "Oct 14" (* x 7))>
 ;;
 ;; As you might have guessed, the syntax is as follows:
-;; m[<range start:=0>][<separator:= >]<range end>[lisp expr]|[format expr]
+;; m[<range start:=0>][<separator:= >]<range end>[Lisp expr]|[format expr]
 ;;
-;; x is the default var in the elisp expression. It will take one by one
+;; x is the default var in the elisp expression.  It will take one by one
 ;; the value of all numbers in the range.
 ;;
 ;; | means that elisp expr has ended and format expr has begun.
 ;; It can be omitted if the format expr starts with %.
 ;; The keys are the same as for format.
-;; In addition %(sexp) forms are allowed. The sexp can depend on x.
+;; In addition %(sexp) forms are allowed.  The sexp can depend on x.
 ;;
 ;; Note that multiple % can be used in the format expression.
 ;; In that case:
-;; * if the lisp expression returns a list, the members of this list
+;; * if the Lisp expression returns a list, the members of this list
 ;;   are used in the appropriate place.
 ;; * otherwise, it's just the result of the expression repeated as
 ;;   many times as necessary.
-
+
+;;; Code:
+
 (eval-when-compile
   (require 'cl))
 (require 'help-fns)
@@ -113,6 +115,7 @@ At the moment, only `tiny-mapconcat' is supported.
       (tiny-replace-this-sexp))))
 
 (defun tiny-setup-default ()
+  "Setup shortcuts."
   (global-set-key (kbd "C-;") 'tiny-expand))
 
 (defun tiny-replace-this-sexp ()
@@ -130,10 +133,10 @@ On error go up list and try again."
       (while t
         (ignore-errors
           (unless (looking-back ")")
-            (error "bad location"))
+            (error "Bad location"))
           (let ((sexp (preceding-sexp)))
             (if (eq (car sexp) 'lambda)
-                (error "lambda evaluates to itself")
+                (error "Lambda evaluates to itself")
               (let ((value (eval sexp)))
                 (kill-sexp -1)
                 (insert (format "%s" value))
@@ -157,9 +160,8 @@ Must throw an error when can't go up further."
   (up-list))
 
 (defun tiny-mapconcat ()
-  "Take the output of `tiny-mapconcat-parse' and replace
-the null values with defaults and return the formatted
-expression."
+  "Format output of `tiny-mapconcat-parse'.
+Defaults are used in place of null values."
   (let ((parsed (tiny-mapconcat-parse)))
     (when parsed
       (let* ((n1     (or (nth 0 parsed) "0"))
@@ -203,8 +205,8 @@ expression."
             flags width precision character)))
 
 (defun tiny-extract-sexps (str)
-  "Returns (STR & FORMS), where each element of FORMS
-corresponds to a `format'-style % form in STR.
+  "Return (STR & FORMS).
+Each element of FORMS corresponds to a `format'-style % form in STR.
 
   * %% forms are skipped
   * %(sexp) is replaced with %s in STR, and put in FORMS
@@ -241,7 +243,7 @@ m[START][SEPARATOR]END[EXPR]|[FORMAT]
 * START     - integer (defaults to 0)
 * SEPARATOR - string  (defaults to \" \")
 * END       - integer (required)
-* EXPR      - lisp expression: function body with argument x (defaults to x)
+* EXPR      - Lisp expression: function body with argument x (defaults to x)
   Parens are optional if it's unambiguous:
   - `(* 2 (+ x 3))'  <-> *2+x3
   - `(exp x)'        <-> expx
@@ -300,7 +302,7 @@ Return nil if nothing was matched, otherwise
                   (progn
                     (setq expr (tiny-tokenize (match-string-no-properties 1 str)))
                     (setq fmt (match-string-no-properties 2 str)))
-                (error "couldn't match %s" str)))
+                (error "Couldn't match %s" str)))
             t)
       (when (equal expr "")
         (setq expr nil))
@@ -308,6 +310,7 @@ Return nil if nothing was matched, otherwise
 
 ;; TODO: check for arity: this doesn't work: exptxy
 (defun tiny-tokenize (str)
+  "Transform shorthand Lisp expression STR to proper Lisp."
   (if (equal str "")
       ""
     (ignore-errors
@@ -325,7 +328,7 @@ Return nil if nothing was matched, otherwise
                   ((string= s " ")
                    (if allow-spc
                        t
-                     (error "unexpected \" \"")))
+                     (error "Unexpected \" \"")))
                   ;; special syntax to read chars
                   ((string= s "?")
                    (setq s (format "%s" (read (substring str i (incf j)))))
@@ -335,7 +338,7 @@ Return nil if nothing was matched, otherwise
                    ;; expect a close paren only if it's necessary
                    (if (>= n-paren 0)
                        (decf n-paren)
-                     (error "unexpected \")\""))
+                     (error "Unexpected \")\""))
                    (when (string= (car out) " ")
                      (pop out))
                    (push ")" out)
@@ -380,6 +383,9 @@ Return nil if nothing was matched, otherwise
          (make-string n-paren ?\)))))))
 
 (defun tiny-date (s &optional shift)
+  "Return date representation of S.
+`org-mode' format is used.
+Optional SHIFT argument is the integer amount of days to shift."
   (let ((time (apply 'encode-time
                      (org-read-date-analyze
                       s nil
