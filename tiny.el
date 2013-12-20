@@ -98,6 +98,7 @@
 (defvar tiny-end nil
   "Last matched snippet end position.")
 
+;;;###autoload
 (defun tiny-expand ()
   "Expand current snippet.
 It polls the expander functions one by one
