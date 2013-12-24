@@ -213,7 +213,7 @@ Each element of FORMS corresponds to a `format'-style % form in STR.
   * %(sexp) is replaced with %s in STR, and put in FORMS
   * the rest of forms are untouched in STR, and put as nil in FORMS"
   (let ((start 0)
-        forms beg)
+        forms beg fexp)
     (condition-case nil
         (while (setq beg (string-match "%" str start))
           (setq start (1+ beg))
