@@ -57,6 +57,7 @@
 ;; m10*2+3x
 ;; m\n;; 10expx
 ;; m5\n;; 20expx%014.2f
+;; m7|%(expt 2 x)
 ;; m, 7|0x%02x
 ;; m10|%0.2f
 ;; m1\n14|*** TODO http://emacsrocks.com/e%02d.html

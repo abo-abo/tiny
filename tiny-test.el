@@ -155,7 +155,10 @@ SCHEDULED: <2014-10-29 Wed> DEADLINE: <2014-11-06 Thu>
 **** TODO Classical Mechanics Week 8
 SCHEDULED: <2014-11-05 Wed> DEADLINE: <2014-11-13 Thu>
 **** TODO Classical Mechanics Week 9
-SCHEDULED: <2014-11-12 Wed> DEADLINE: <2014-11-20 Thu>")))
+SCHEDULED: <2014-11-12 Wed> DEADLINE: <2014-11-20 Thu>"))
+  (should (string= (with-text-value "m7|%(expt 2 x)"
+                     (lambda()(eval (read (tiny-mapconcat)))))
+                   "1 2 4 8 16 32 64 128")))
 
 (ert-deftest tiny-replace-this-sexp ()
   (should (equal (with-text-value "(mapcar (lambda (x) (* x x)) '(1 2 3))"
