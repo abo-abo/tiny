@@ -120,6 +120,7 @@ At the moment, only `tiny-mapconcat' is supported.
   "Setup shortcuts."
   (global-set-key (kbd "C-;") 'tiny-expand))
 
+;;;###autoload
 (defun tiny-replace-this-sexp ()
   "Eval and replace the current sexp.
 On error go up list and try again."
@@ -166,26 +167,26 @@ Must throw an error when can't go up further."
 Defaults are used in place of null values."
   (let ((parsed (tiny-mapconcat-parse)))
     (when parsed
-      (let* ((n1     (or (nth 0 parsed) "0"))
-             (s1     (or (nth 1 parsed) " "))
-             (n2     (nth 2 parsed))
-             (expr   (or (nth 3 parsed) "x"))
-             (lexpr  (read expr))
+      (let* ((n1 (or (nth 0 parsed) "0"))
+             (s1 (or (nth 1 parsed) " "))
+             (n2 (nth 2 parsed))
+             (expr (or (nth 3 parsed) "x"))
+             (lexpr (read expr))
              (n-have (if (and (listp lexpr) (eq (car lexpr) 'list))
                          (1- (length lexpr))
                        0))
              (expr (if (zerop n-have) `(list ,lexpr) lexpr))
              (n-have (if (zerop n-have) 1 n-have))
-             (tes    (tiny-extract-sexps (or (nth 4 parsed) "%s")))
-             (fmt    (car tes))
+             (tes (tiny-extract-sexps (or (nth 4 parsed) "%s")))
+             (fmt (car tes))
              (n-need (cl-count nil (cdr tes)))
              (idx -1)
              (format-expression
               (concat "(mapconcat (lambda(x) (let ((lst %s)) (format \"%s\" "
                       (mapconcat (lambda (x) (or x
-                                            (if (>= (1+ idx) n-have)
-                                                "x"
-                                              (format "(nth %d lst)" (incf idx)))))
+                                                 (if (>= (1+ idx) n-have)
+                                                     "x"
+                                                   (format "(nth %d lst)" (incf idx)))))
                                  (cdr tes)
                                  " ")
                       ")))(number-sequence %s %s) \"%s\")")))
@@ -256,7 +257,9 @@ m[START][SEPARATOR]END[EXPR]|[FORMAT]
 
 Return nil if nothing was matched, otherwise
  (START SEPARATOR END EXPR FORMAT)"
-  (let (n1 s1 n2 expr fmt str n-uses)
+  (let ((case-fold-search nil)
+        n1 s1 n2 expr fmt str
+        n-uses)
     (when (catch 'done
             (cond
               ;; either start with a number
@@ -283,7 +286,7 @@ Return nil if nothing was matched, otherwise
             ;; First, try to match [expr][fmt]
             (string-match "^\\(.*?\\)|?\\(%.*\\)?$" str)
             (setq expr (match-string-no-properties 1 str))
-            (setq fmt  (match-string-no-properties 2 str))
+            (setq fmt (match-string-no-properties 2 str))
             ;; If it's a valid expression, we're done
             (when (setq expr (tiny-tokenize expr))
               (setq n2 n1
