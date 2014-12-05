@@ -391,13 +391,19 @@ Return nil if nothing was matched, otherwise
   "Return date representation of S.
 `org-mode' format is used.
 Optional SHIFT argument is the integer amount of days to shift."
-  (let ((time (apply 'encode-time
-                     (org-read-date-analyze
-                      s nil
-                      (decode-time (current-time))))))
+  (let* ((ct (decode-time (current-time)))
+         (time (apply 'encode-time
+                      (org-read-date-analyze
+                       s nil
+                       ct)))
+         (formatter
+          (if (equal (cl-subseq ct 1 3)
+                     (cl-subseq (decode-time time) 1 3))
+              "%Y-%m-%d %a"
+            "%Y-%m-%d %a %H:%M")))
     (when shift
       (setq time (time-add time (days-to-time shift))))
-    (format-time-string "%Y-%m-%d %a" time)))
+    (format-time-string formatter time)))
 
 (provide 'tiny)
 ;;; tiny.el ends here
