@@ -127,35 +127,35 @@ convert img10.jpg -monochrome -resize 50% -rotate 180 img10_mono.pdf"))
   (should (equal (with-text-value "m\\n8|**** TODO Learning from Data Week %(+ x 2)\\nSCHEDULED: <%(date \"Oct 7\" (* x 7))> DEADLINE: <%(date \"Oct 14\" (* x 7))>"
                    (lambda()(eval (read (tiny-mapconcat)))))
                  "**** TODO Learning from Data Week 2
-SCHEDULED: <2014-10-07 Tue> DEADLINE: <2014-10-14 Tue>
+SCHEDULED: <2015-10-07 Wed> DEADLINE: <2015-10-14 Wed>
 **** TODO Learning from Data Week 3
-SCHEDULED: <2014-10-14 Tue> DEADLINE: <2014-10-21 Tue>
+SCHEDULED: <2015-10-14 Wed> DEADLINE: <2015-10-21 Wed>
 **** TODO Learning from Data Week 4
-SCHEDULED: <2014-10-21 Tue> DEADLINE: <2014-10-28 Tue>
+SCHEDULED: <2015-10-21 Wed> DEADLINE: <2015-10-28 Wed>
 **** TODO Learning from Data Week 5
-SCHEDULED: <2014-10-28 Tue> DEADLINE: <2014-11-04 Tue>
+SCHEDULED: <2015-10-28 Wed> DEADLINE: <2015-11-04 Wed>
 **** TODO Learning from Data Week 6
-SCHEDULED: <2014-11-04 Tue> DEADLINE: <2014-11-11 Tue>
+SCHEDULED: <2015-11-04 Wed> DEADLINE: <2015-11-11 Wed>
 **** TODO Learning from Data Week 7
-SCHEDULED: <2014-11-11 Tue> DEADLINE: <2014-11-18 Tue>
+SCHEDULED: <2015-11-11 Wed> DEADLINE: <2015-11-18 Wed>
 **** TODO Learning from Data Week 8
-SCHEDULED: <2014-11-18 Tue> DEADLINE: <2014-11-25 Tue>
+SCHEDULED: <2015-11-18 Wed> DEADLINE: <2015-11-25 Wed>
 **** TODO Learning from Data Week 9
-SCHEDULED: <2014-11-25 Tue> DEADLINE: <2014-12-02 Tue>
+SCHEDULED: <2015-11-25 Wed> DEADLINE: <2015-12-02 Wed>
 **** TODO Learning from Data Week 10
-SCHEDULED: <2014-12-02 Tue> DEADLINE: <2014-12-09 Tue>"))
+SCHEDULED: <2015-12-02 Wed> DEADLINE: <2015-12-09 Wed>"))
   (should (string= (with-text-value "m\\n4|**** TODO Classical Mechanics Week %(+ x 5)\\nSCHEDULED: <%(date \"Oct 15\" (* x 7))> DEADLINE: <%(date \"Oct 23\" (* x 7))>"
                      (lambda()(eval (read (tiny-mapconcat)))))
                    "**** TODO Classical Mechanics Week 5
-SCHEDULED: <2014-10-15 Wed> DEADLINE: <2014-10-23 Thu>
+SCHEDULED: <2015-10-15 Thu> DEADLINE: <2015-10-23 Fri>
 **** TODO Classical Mechanics Week 6
-SCHEDULED: <2014-10-22 Wed> DEADLINE: <2014-10-30 Thu>
+SCHEDULED: <2015-10-22 Thu> DEADLINE: <2015-10-30 Fri>
 **** TODO Classical Mechanics Week 7
-SCHEDULED: <2014-10-29 Wed> DEADLINE: <2014-11-06 Thu>
+SCHEDULED: <2015-10-29 Thu> DEADLINE: <2015-11-06 Fri>
 **** TODO Classical Mechanics Week 8
-SCHEDULED: <2014-11-05 Wed> DEADLINE: <2014-11-13 Thu>
+SCHEDULED: <2015-11-05 Thu> DEADLINE: <2015-11-13 Fri>
 **** TODO Classical Mechanics Week 9
-SCHEDULED: <2014-11-12 Wed> DEADLINE: <2014-11-20 Thu>"))
+SCHEDULED: <2015-11-12 Thu> DEADLINE: <2015-11-20 Fri>"))
   (should (string= (with-text-value "m7|%(expt 2 x)"
                      (lambda()(eval (read (tiny-mapconcat)))))
                    "1 2 4 8 16 32 64 128")))

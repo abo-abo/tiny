@@ -182,11 +182,12 @@ Defaults are used in place of null values."
              (n-need (cl-count nil (cdr tes)))
              (idx -1)
              (format-expression
-              (concat "(mapconcat (lambda(x) (let ((lst %s)) (format \"%s\" "
-                      (mapconcat (lambda (x) (or x
-                                                 (if (>= (1+ idx) n-have)
-                                                     "x"
-                                                   (format "(nth %d lst)" (incf idx)))))
+              (concat "(mapconcat (lambda(x) (let ((lst %s)) (format %S "
+                      (mapconcat (lambda (x)
+                                   (or x
+                                       (if (>= (1+ idx) n-have)
+                                           "x"
+                                         (format "(nth %d lst)" (incf idx)))))
                                  (cdr tes)
                                  " ")
                       ")))(number-sequence %s %s) \"%s\")")))
@@ -194,7 +195,7 @@ Defaults are used in place of null values."
           (format
            format-expression
            expr
-           fmt
+           (replace-regexp-in-string "\\\\n" "\n" fmt)
            n1
            n2
            s1))))))
