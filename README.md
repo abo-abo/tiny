@@ -1,3 +1,6 @@
+[![Build Status](https://travis-ci.org/abo-abo/tiny.svg?branch=master)](https://travis-ci.org/abo-abo/tiny)
+[![Coverage Status](https://coveralls.io/repos/abo-abo/tiny/badge.svg?branch=master)](https://coveralls.io/r/abo-abo/tiny?branch=master)
+
 ### Main idea:
 
 This is an alternative to inserting numeric ranges with macros (i.e. `F3 F3`).
