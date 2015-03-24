@@ -169,8 +169,14 @@ Must throw an error when can't go up further."
 Defaults are used in place of null values."
   (let ((parsed (tiny-mapconcat-parse)))
     (when parsed
-      (let* ((n1 (or (nth 0 parsed) "0"))
-             (s1 (or (nth 1 parsed) " "))
+      (let* ((n0 (or (nth 0 parsed) "0"))
+             (n1 (nth 1 parsed))
+             (s1 (cond ((null n1)
+                        " ")
+                       ((equal n1 "m")
+                        "")
+                       (t
+                        n1)))
              (n2 (nth 2 parsed))
              (expr (or (nth 3 parsed) "x"))
              (lexpr (read expr))
@@ -193,12 +199,12 @@ Defaults are used in place of null values."
                                  (cdr tes)
                                  " ")
                       ")))(number-sequence %s %s) \"%s\")")))
-        (unless (>= (read n1) (read n2))
+        (unless (>= (read n0) (read n2))
           (format
            format-expression
            expr
            (replace-regexp-in-string "\\\\n" "\n" fmt)
-           n1
+           n0
            n2
            s1))))))
 

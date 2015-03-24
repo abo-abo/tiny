@@ -74,6 +74,8 @@ with point at the end of TXT."
 (ert-deftest tiny-mapconcat ()
   (should (equal (with-text-value "m10" (lambda()(eval (read (tiny-mapconcat)))))
                  "0 1 2 3 4 5 6 7 8 9 10"))
+  (should (equal (with-text-value "mm10" (lambda()(eval (read (tiny-mapconcat)))))
+                 "012345678910"))
   (should (equal (with-text-value "m5 10" (lambda()(eval (read (tiny-mapconcat)))))
                  "5 6 7 8 9 10"))
   (should (equal (with-text-value "m5 10*xx" (lambda()(eval (read (tiny-mapconcat)))))
