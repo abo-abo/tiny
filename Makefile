@@ -1,8 +1,9 @@
+CASK = ~/.cask/bin/cask
 emacs ?= emacs
 all: test
 
 test: clean
-	$(emacs) -Q -batch -l tiny-test.el -l tiny.el --eval "(ert t)"
+	$(CASK) exec emacs -Q -batch -l tiny-test.el -l tiny.el -f ert-run-tests-batch-and-exit
 
 compile:
 	$(emacs) -Q -batch -f batch-byte-compile tiny.el
