@@ -335,7 +335,8 @@ Return nil if nothing was matched, otherwise
   (if (equal str "")
       ""
     (ignore-errors
-      (let ((i 0) (j 1)
+      (let ((i 0)
+            (j 1)
             (len (length str))
             sym s out allow-spc
             (n-paren 0)
@@ -373,7 +374,8 @@ Return nil if nothing was matched, otherwise
                   ((progn (setq sym (intern-soft s))
                           (cond
                             ;; general functionp
-                            ((not (eq t (help-function-arglist sym)))
+                            ((and (not (eq t (help-function-arglist sym)))
+                                  (not (eq sym '\,)))
                              (setq expect-fun nil)
                              (setq allow-spc t)
                              ;; (when (zerop n-paren) (push "(" out))
