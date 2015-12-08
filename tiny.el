@@ -4,7 +4,7 @@
 
 ;; Author: Oleh Krehel <ohwoeowho@gmail.com>
 ;; URL: https://github.com/abo-abo/tiny
-;; Version: 0.1
+;; Version: 0.1.1
 ;; Keywords: convenience
 
 ;; This file is part of GNU Emacs.
@@ -122,6 +122,11 @@ At the moment, only `tiny-mapconcat' is supported.
   "Setup shortcuts."
   (global-set-key (kbd "C-;") 'tiny-expand))
 
+(defalias 'tiny--preceding-sexp
+    (if (fboundp 'elisp--preceding-sexp)
+        'elisp--preceding-sexp
+      'preceding-sexp))
+
 ;;;###autoload
 (defun tiny-replace-this-sexp ()
   "Eval and replace the current sexp.
@@ -137,9 +142,9 @@ On error go up list and try again."
     (catch 'success
       (while t
         (ignore-errors
-          (unless (looking-back ")")
+          (unless (looking-back ")" (line-beginning-position))
             (error "Bad location"))
-          (let ((sexp (preceding-sexp)))
+          (let ((sexp (tiny--preceding-sexp)))
             (if (eq (car sexp) 'lambda)
                 (error "Lambda evaluates to itself")
               (let ((value (eval sexp)))
@@ -272,7 +277,8 @@ Return nil if nothing was matched, otherwise
     (when (catch 'done
             (cond
               ;; either start with a number
-              ((looking-back "\\bm\\(-?[0-9]+\\)\\([^\n]*?\\)")
+              ((looking-back "\\bm\\(-?[0-9]+\\)\\([^\n]*?\\)"
+                             (line-beginning-position))
                (setq n1 (match-string-no-properties 1)
                      str (match-string-no-properties 2)
                      tiny-beg (match-beginning 0)
@@ -282,7 +288,8 @@ Return nil if nothing was matched, otherwise
                        n1 nil)
                  (throw 'done t)))
               ;; else capture the whole thing
-              ((looking-back "\\bm\\([^%|\n]*[0-9][^\n]*\\)")
+              ((looking-back "\\bm\\([^%|\n]*[0-9][^\n]*\\)"
+                             (line-beginning-position))
                (setq str (match-string-no-properties 1)
                      tiny-beg (match-beginning 0)
                      tiny-end (match-end 0))
@@ -367,7 +374,7 @@ Return nil if nothing was matched, otherwise
                           (cond
                             ;; general functionp
                             ((not (eq t (help-function-arglist sym)))
-                             (setq expect-fun)
+                             (setq expect-fun nil)
                              (setq allow-spc t)
                              ;; (when (zerop n-paren) (push "(" out))
                              (unless (equal (car out) "(")
