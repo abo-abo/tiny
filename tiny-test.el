@@ -213,4 +213,11 @@ SCHEDULED: <2015-11-12 Thu> DEADLINE: <2015-11-20 Fri>"))
     (should (equal (tiny-tokenize "(string x (upcase x) x") "(string x (upcase x) x)"))
     (should (equal (tiny-tokenize "(string x (upcase x) x)") "(string x (upcase x) x)")))
 
+(ert-deftest tiny-decreasing-seq ()
+  (should (equal (with-text-value "m2 -2" (lambda () (eval (read (tiny-mapconcat)))))
+                 "2 1 0 -1 -2"))
+  (should (equal (with-text-value "m3 -1|%(+ x x)" (lambda ()
+                                                     (eval (read (tiny-mapconcat)))))
+                 "6 4 2 0 -2")))
+
 (provide 'tiny-test)
