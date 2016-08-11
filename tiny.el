@@ -194,6 +194,8 @@ Defaults are used in place of null values."
              (fmt (car tes))
              (n-need (cl-count nil (cdr tes)))
              (idx -1)
+             (seq (number-sequence (read n0) (read n2)
+                                   (if (>= (read n0) (read n2)) -1 1)))
              (format-expression
               (concat "(mapconcat (lambda(x) (let ((lst %s)) (format %S "
                       (mapconcat (lambda (x)
@@ -203,15 +205,13 @@ Defaults are used in place of null values."
                                          (format "(nth %d lst)" (incf idx)))))
                                  (cdr tes)
                                  " ")
-                      ")))(number-sequence %s %s) \"%s\")")))
-        (unless (>= (read n0) (read n2))
-          (format
-           format-expression
-           expr
-           (replace-regexp-in-string "\\\\n" "\n" fmt)
-           n0
-           n2
-           s1))))))
+                      ")))'%S \"%s\")")))
+        (format
+         format-expression
+         expr
+         (replace-regexp-in-string "\\\\n" "\n" fmt)
+         seq
+         s1)))))
 
 (defconst tiny-format-str
   (let ((flags "[+ #-0]\\{0,1\\}")
