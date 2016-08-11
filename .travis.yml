@@ -7,11 +7,7 @@ before_install:
   # Update and install the Emacs for our environment
   - sudo apt-get update -qq
   - sudo apt-get install -qq -yy ${EMACS}-nox ${EMACS}-el
-  # Install cask dependencies
-  - curl -fsSLo /tmp/cask-master.zip https://github.com/cask/cask/archive/master.zip
-  - sudo unzip -qq -d /opt /tmp/cask-master.zip
-  - sudo ln -sf /opt/cask-master/bin/cask /usr/local/bin/cask
-  - cask
+
 env:
   - EMACS=emacs24
   - EMACS=emacs-snapshot
