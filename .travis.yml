@@ -13,4 +13,5 @@ env:
   - EMACS=emacs-snapshot
 script:
   - emacs --version
+  - make update
   - make test
