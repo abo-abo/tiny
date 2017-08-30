@@ -4,7 +4,7 @@
 
 ;; Author: Oleh Krehel <ohwoeowho@gmail.com>
 ;; URL: https://github.com/abo-abo/tiny
-;; Version: 0.1.1
+;; Version: 0.2.0
 ;; Keywords: convenience
 
 ;; This file is part of GNU Emacs.
@@ -498,15 +498,15 @@ Usage: Call TINY-HELPER, ↵↵↵↵↵            -> 0 1 2 3 4 5 6 7 8 9
            tiny-expr)
       ;; BEGIN-VAL and END-VAL sanity check.
       (cond
-       ((= end-val-num begin-val-num)
-        (if (zerop end-val-num)
-            ;; If both are zero, set the end value to 9 (arbitrarily chosen).
-            (setq end-val "9")
-          (user-error (format "Begin value (%s) and End value (%s) cannot be the same"
-                              begin-val end-val))))
-       ((< end-val-num begin-val-num)
-        (user-error (format "End value (%s) has to be greater than the begin value (%s)"
-                            begin-val end-val))))
+        ((= end-val-num begin-val-num)
+         (if (zerop end-val-num)
+             ;; If both are zero, set the end value to 9 (arbitrarily chosen).
+             (setq end-val "9")
+           (user-error (format "Begin value (%s) and End value (%s) cannot be the same"
+                               begin-val end-val))))
+        ((< end-val-num begin-val-num)
+         (user-error (format "End value (%s) has to be greater than the begin value (%s)"
+                             begin-val end-val))))
       ;; SEP cannot be an empty string if BEGIN-VAL is a non-empty string.
       ;; It is OK to not specify BEGIN-VAL if it is 0.
       (when (and (not (string= begin-val ""))
