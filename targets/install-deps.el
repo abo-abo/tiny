@@ -1,3 +1,5 @@
+;; Copyright (C) 2017  Free Software Foundation, Inc.
+
 (setq package-user-dir
       (expand-file-name (format ".cask/%s/elpa" emacs-version)))
 (require 'dired)
@@ -25,4 +27,3 @@
         (package-menu-execute t))
     (error
      (message "All packages up to date"))))
-
