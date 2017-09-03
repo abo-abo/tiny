@@ -1,10 +1,10 @@
 ;;; tiny.el --- Quickly generate linear ranges in Emacs
 
-;; Copyright (C) 2013-2015  Free Software Foundation, Inc.
+;; Copyright (C) 2013-2015, 2017  Free Software Foundation, Inc.
 
 ;; Author: Oleh Krehel <ohwoeowho@gmail.com>
 ;; URL: https://github.com/abo-abo/tiny
-;; Version: 0.2.0
+;; Version: 0.2.1
 ;; Keywords: convenience
 
 ;; This file is part of GNU Emacs.
@@ -126,69 +126,25 @@ to the bounds of the snippet that they matched.
 At the moment, only `tiny-mapconcat' is supported.
 `tiny-mapconcat2' should be added to expand rectangles."
   (interactive)
-  (let ((str (tiny-mapconcat)))
-    (when str
+  (let ((e (tiny-mapconcat)))
+    (when e
+      (goto-char tiny-beg)
       (delete-region tiny-beg tiny-end)
-      (insert str)
-      (tiny-replace-this-sexp))))
+      (insert (eval e t)))))
 
 (defun tiny-setup-default ()
   "Setup shortcuts."
   (global-set-key (kbd "C-;") 'tiny-expand))
 
-(defalias 'tiny--preceding-sexp
-    (if (fboundp 'elisp--preceding-sexp)
-        'elisp--preceding-sexp
-      'preceding-sexp))
-
-;;;###autoload
-(defun tiny-replace-this-sexp ()
-  "Eval and replace the current sexp.
-On error go up list and try again."
-  (interactive)
-  (if (region-active-p)
-      (let ((s (buffer-substring-no-properties
-                (region-beginning)
-                (region-end))))
-        (delete-region (region-beginning)
-                       (region-end))
-        (insert (format "%s" (eval (read s)))))
-    (catch 'success
-      (while t
-        (ignore-errors
-          (unless (looking-back ")" (line-beginning-position))
-            (error "Bad location"))
-          (let ((sexp (tiny--preceding-sexp)))
-            (if (eq (car sexp) 'lambda)
-                (error "Lambda evaluates to itself")
-              (let ((value (eval sexp)))
-                (kill-sexp -1)
-                (insert (format "%s" value))
-                (throw 'success t)))))
-        ;; if can't replace, go up list
-        (condition-case nil
-            (tiny-up-list)
-          (error
-           (message "reached the highest point, couldn't eval.")
-           (throw 'success nil)))))))
-
-(defun tiny-up-list ()
-  "An `up-list' that can exit from string.
-Must throw an error when can't go up further."
-  (interactive)
-  ;; check if inside string
-  (let ((p (nth 8 (syntax-ppss))))
-    (when (eq (char-after p) ?\")
-      ;; go to beginning for string
-      (goto-char p)))
-  (up-list))
+(defun tiny--strip-\n (str)
+  (replace-regexp-in-string "\\\\n" "\n" str))
 
 (defun tiny-mapconcat ()
   "Format output of `tiny-mapconcat-parse'.
 Defaults are used in place of null values."
   (let ((parsed (tiny-mapconcat-parse)))
     (when parsed
-      (let* ((n0 (or (nth 0 parsed) "0"))
+      (let* ((n0 (string-to-number (or (nth 0 parsed) "0")))
              (n1 (nth 1 parsed))
              (s1 (cond ((null n1)
                         " ")
@@ -196,7 +152,7 @@ Defaults are used in place of null values."
                         "")
                        (t
                         n1)))
-             (n2 (nth 2 parsed))
+             (n2 (read (nth 2 parsed)))
              (expr (or (nth 3 parsed) "x"))
              (lexpr (read expr))
              (n-have (if (and (listp lexpr) (eq (car lexpr) 'list))
@@ -206,26 +162,20 @@ Defaults are used in place of null values."
              (n-have (if (zerop n-have) 1 n-have))
              (tes (tiny-extract-sexps (or (nth 4 parsed) "%s")))
              (fmt (car tes))
-             (n-need (cl-count nil (cdr tes)))
              (idx -1)
-             (seq (number-sequence (read n0) (read n2)
-                                   (if (>= (read n0) (read n2)) -1 1)))
-             (format-expression
-              (concat "(mapconcat (lambda(x) (let ((lst %s)) (format %S "
-                      (mapconcat (lambda (x)
-                                   (or x
-                                       (if (>= (1+ idx) n-have)
-                                           "x"
-                                         (format "(nth %d lst)" (incf idx)))))
-                                 (cdr tes)
-                                 " ")
-                      ")))'%S \"%s\")")))
-        (format
-         format-expression
-         expr
-         (replace-regexp-in-string "\\\\n" "\n" fmt)
-         seq
-         s1)))))
+             (seq (number-sequence n0 n2 (if (>= n0 n2) -1 1))))
+        `(mapconcat (lambda (x)
+                      (let ((lst ,expr))
+                        (format ,(tiny--strip-\n fmt)
+                                ,@(mapcar (lambda (x)
+                                            (if x
+                                                (read x)
+                                              (if (>= (1+ idx) n-have)
+                                                  'x
+                                                `(nth ,(incf idx) lst))))
+                                          (cdr tes)))))
+                    ',seq
+                    ,(tiny--strip-\n s1))))))
 
 (defconst tiny-format-str
   (let ((flags "[+ #-0]\\{0,1\\}")
@@ -254,7 +204,7 @@ Each element of FORMS corresponds to a `format'-style % form in STR.
                 ((and (eq beg (string-match tiny-format-str str beg))
                       (setq fexp (match-string-no-properties 1 str)))
                  (incf beg (length fexp))
-                 (destructuring-bind (sexp . end)
+                 (destructuring-bind (_sexp . end)
                      (read-from-string str beg)
                    (push
                     (replace-regexp-in-string "(date" "(tiny-date"
@@ -276,22 +226,21 @@ m[START][SEPARATOR]END[EXPR]|[FORMAT]
 * END       - integer (required)
 * EXPR      - Lisp expression: function body with argument x (defaults to x)
   Parens are optional if it's unambiguous:
-  - `(* 2 (+ x 3))'  <-> *2+x3
-  - `(exp x)'        <-> expx
+  - `(* 2 (+ x 3))'   <-> *2+x3
+  - `(exp x)'         <-> expx
   A closing paren may be added to resolve ambiguity:
-  - `(* 2 (+ x 3) x) <-> *2+x3)
+  - `(* 2 (+ x 3) x)' <-> *2+x3)
 * FORMAT    - string, `format'-style (defaults to \"%s\")
   | separator can be omitted if FORMAT starts with %.
 
 Return nil if nothing was matched, otherwise
  (START SEPARATOR END EXPR FORMAT)"
   (let ((case-fold-search nil)
-        n1 s1 n2 expr fmt str
-        n-uses)
+        n1 s1 n2 expr fmt str)
     (when (catch 'done
             (cond
               ;; either start with a number
-              ((looking-back "\\bm\\(-?[0-9]+\\)\\([^\n]*?\\)"
+              ((looking-back "\\bm\\(-?[0-9]+\\)\\(.*?\\)"
                              (line-beginning-position))
                (setq n1 (match-string-no-properties 1)
                      str (match-string-no-properties 2)
@@ -458,8 +407,11 @@ Usage: Call TINY-HELPER, ↵↵↵↵↵            -> 0 1 2 3 4 5 6 7 8 9
        Call TINY-HELPER, 9↵2↵_↵+1*x2↵↵    -> 5_7_9_11_13_15_17_19
        Call TINY-HELPER, 15↵1↵↵-30*2x↵%x↵ -> 1c 1a 18 16 14 12 10 e c a 8 6 4 2 0"
   (interactive
-   (when (and (null (barf-if-buffer-read-only)) ;Use the helper only if tiny expansion is not
-              (null (tiny-mapconcat))) ;possible at point and if the buffer is editable.
+   (unless (or
+            ;; Use the helper only if tiny expansion is not
+            ;; possible at point and if the buffer is editable.d
+            (barf-if-buffer-read-only)
+            (tiny-mapconcat))
      (let ((prompt (propertize "tiny-helper: " 'face 'font-lock-function-name-face)))
        (list (read-string (concat prompt
                                   "END value "
