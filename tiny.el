@@ -136,7 +136,7 @@ At the moment, only `tiny-mapconcat' is supported.
   "Setup shortcuts."
   (global-set-key (kbd "C-;") 'tiny-expand))
 
-(defun tiny--strip-\n (str)
+(defun tiny--strip-newlines (str)
   (replace-regexp-in-string "\\\\n" "\n" str))
 
 (defun tiny-mapconcat ()
@@ -166,7 +166,7 @@ Defaults are used in place of null values."
              (seq (number-sequence n0 n2 (if (>= n0 n2) -1 1))))
         `(mapconcat (lambda (x)
                       (let ((lst ,expr))
-                        (format ,(tiny--strip-\n fmt)
+                        (format ,(tiny--strip-newlines fmt)
                                 ,@(mapcar (lambda (x)
                                             (if x
                                                 (read x)
@@ -175,7 +175,7 @@ Defaults are used in place of null values."
                                                 `(nth ,(incf idx) lst))))
                                           (cdr tes)))))
                     ',seq
-                    ,(tiny--strip-\n s1))))))
+                    ,(tiny--strip-newlines s1))))))
 
 (defconst tiny-format-str
   (let ((flags "[+ #-0]\\{0,1\\}")
