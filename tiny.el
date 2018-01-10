@@ -251,14 +251,21 @@ Return nil if nothing was matched, otherwise
                  (setq n2 n1
                        n1 nil)
                  (throw 'done t)))
-              ;; else capture the whole thing
-              ((looking-back "\\bm\\([^%|\n]*[0-9][^\n]*\\)"
+              ;; else capture separator, end number, formatter
+              ((looking-back "\\bm\\([^%|\n0-9]*\\)\\([0-9]+\\)\\([^\n]*\\)"
                              (line-beginning-position))
-               (setq str (match-string-no-properties 1)
-                     tiny-beg (match-beginning 0)
-                     tiny-end (match-end 0))
-               (when (zerop (length str))
-                 (throw 'done nil)))
+               (setq tiny-beg (match-beginning 0))
+               (setq tiny-end (match-end 0))
+               (let ((separator (match-string-no-properties 1))
+                     (end-numbr (match-string-no-properties 2))
+                     (formatter (match-string-no-properties 3)))
+                 (if (or (string-match-p "[%|]" formatter)
+                         (string= "" formatter))
+                     (progn
+                       (setq str (concat separator end-numbr formatter))
+                       (when (zerop (length str))
+                         (throw 'done nil)))
+                   (throw 'done nil))))
               (t (throw 'done nil)))
             ;; at this point, `str' should be either [sep]<num>[expr][fmt]
             ;; or [expr][fmt]
