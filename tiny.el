@@ -130,7 +130,8 @@ At the moment, only `tiny-mapconcat' is supported.
     (when e
       (goto-char tiny-beg)
       (delete-region tiny-beg tiny-end)
-      (insert (eval e t)))))
+      (insert (eval e t))
+      t)))
 
 (defun tiny-setup-default ()
   "Setup shortcuts."
