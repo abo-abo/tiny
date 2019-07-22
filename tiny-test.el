@@ -61,15 +61,20 @@ with point at the end of TXT."
   (should (equal (with-text-value "m\\n;; 10|%(+ x x) and %(* x x) and %s" #'tiny-mapconcat-parse)
                  '(nil "\\n;; " "10" nil "%(+ x x) and %(* x x) and %s")))
   (should (equal (with-text-value "m10|%0.2f" #'tiny-mapconcat-parse)
-                 '(nil nil "10" nil "%0.2f"))))
+                 '(nil nil "10" nil "%0.2f")))
+  (should (equal (with-text-value "m1\\n999|fun%s();" #'tiny-mapconcat-parse)
+                 '("1" "\\n" "999" nil "fun%s();"))))
 
 (ert-deftest tiny-extract-sexps ()
   (should (equal (tiny-extract-sexps "expr1 %(+ x x), nothing %%  char %c, hex %x, and expr2 %(* x x), float %0.2f and sym %s")
                  '("expr1 %s, nothing %%  char %c, hex %x, and expr2 %s, float %0.2f and sym %s"
                    "(+ x x)" nil nil "(* x x)" nil nil)))
   (should (equal (tiny-extract-sexps "m1\n5| (%c(+ x ?a -1)) %0.1f(* x 0.2)")
-                 '("m1
-5| (%c) %0.1f" "(+ x ?a -1)" "(* x 0.2)"))))
+                 '("m1\n5| (%c) %0.1f" "(+ x ?a -1)" "(* x 0.2)")))
+  (should (equal (tiny-extract-sexps "fun%s ();")
+                 '("fun%s ();" nil)))
+  (should (equal (tiny-extract-sexps "fun%s();")
+                 '("fun%s();" nil))))
 
 (ert-deftest tiny-mapconcat ()
   (should (equal (with-text-value "m10" (lambda()(eval (tiny-mapconcat))))
