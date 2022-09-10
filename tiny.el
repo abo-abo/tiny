@@ -394,6 +394,10 @@ Optional SHIFT argument is the integer amount of days to shift."
       (setq time (time-add time (days-to-time shift))))
     (format-time-string formatter time)))
 
+(defun tiny--message (str)
+  (replace-regexp-in-string
+   "%" "%%" str))
+
 ;;;###autoload
 (defun tiny-helper (&optional end-val begin-val sep op fmt)
   "Helper function for `tiny-expand'.
@@ -458,15 +462,15 @@ Usage: Call TINY-HELPER, ↵↵↵↵↵            -> 0 1 2 3 4 5 6 7 8 9
            tiny-expr)
       ;; BEGIN-VAL and END-VAL sanity check.
       (cond
-        ((= end-val-num begin-val-num)
-         (if (zerop end-val-num)
-             ;; If both are zero, set the end value to 9 (arbitrarily chosen).
-             (setq end-val "9")
-           (user-error (format "Begin value (%s) and End value (%s) cannot be the same"
-                               begin-val end-val))))
-        ((< end-val-num begin-val-num)
-         (user-error (format "End value (%s) has to be greater than the begin value (%s)"
-                             begin-val end-val))))
+       ((= end-val-num begin-val-num)
+        (if (zerop end-val-num)
+            ;; If both are zero, set the end value to 9 (arbitrarily chosen).
+            (setq end-val "9")
+          (user-error (format "Begin value (%s) and End value (%s) cannot be the same"
+                              begin-val end-val))))
+       ((< end-val-num begin-val-num)
+        (user-error (format "End value (%s) has to be greater than the begin value (%s)"
+                            begin-val end-val))))
       ;; SEP cannot be an empty string if BEGIN-VAL is a non-empty string.
       ;; It is OK to not specify BEGIN-VAL if it is 0.
       (when (and (not (string= begin-val ""))
@@ -476,20 +480,21 @@ Usage: Call TINY-HELPER, ↵↵↵↵↵            -> 0 1 2 3 4 5 6 7 8 9
       (when (not (string= fmt ""))
         (setq fmt (concat "|" fmt)))
       (setq tiny-expr (concat "m" begin-val sep end-val op fmt))
-      (message (format "This %s expansion can also be done by typing %s and then %s"
-                       (propertize "tiny"
-                                   'face 'font-lock-function-name-face)
-                       (propertize tiny-expr
-                                   'face 'font-lock-keyword-face)
-                       (if (stringp tiny-key-binding)
-                           (propertize tiny-key-binding
-                                       'face 'font-lock-keyword-face)
-                         (concat
-                          (propertize "M-x tiny-helper"
-                                      'face 'font-lock-keyword-face)
-                          " or "
-                          (propertize "M-x tiny-expand"
-                                      'face 'font-lock-keyword-face)))))
+      (tiny--message
+       (format "This %s expansion can also be done by typing %s and then %s"
+               (propertize "tiny"
+                           'face 'font-lock-function-name-face)
+               (propertize tiny-expr
+                           'face 'font-lock-keyword-face)
+               (if (stringp tiny-key-binding)
+                   (propertize tiny-key-binding
+                               'face 'font-lock-keyword-face)
+                 (concat
+                  (propertize "M-x tiny-helper"
+                              'face 'font-lock-keyword-face)
+                  " or "
+                  (propertize "M-x tiny-expand"
+                              'face 'font-lock-keyword-face)))))
       (insert tiny-expr)
       (undo-boundary)))
   (tiny-expand))
