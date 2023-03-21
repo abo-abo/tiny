@@ -32,7 +32,7 @@ The advantages are:
     4. `m10+x?A%c` -> `A B C D E F G H I J K`
     5. `m97,105stringx` -> `a,b,c,d,e,f,g,h,i`
     6. `m97,102stringxupcasex` -> `aA,bB,cC,dD,eE,fF`
-    7. `m,3|%(+ x x) and %(* x x) and %s` -> `0 and 0 and 0,2 and 1 and 1,4 and 4 and 2,6 and 9 and 3,8 and 16 and 4,10 and 25 and 5`
+    7. `m,5|%(+ x x) and %(* x x) and %s` -> `0 and 0 and 0,2 and 1 and 1,4 and 4 and 2,6 and 9 and 3,8 and 16 and 4,10 and 25 and 5`
 
 ### Use in conjunction with `org-mode`:
 
